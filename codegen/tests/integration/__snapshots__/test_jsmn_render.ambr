@@ -1,0 +1,335 @@
+# serializer version: 1
+# name: test_render_snapshot[jsmn-every-type]
+  '''
+  #ifndef __JSMN_FORGE_H__
+  #define __JSMN_FORGE_H__
+  #include <stdbool.h>
+  #include <stdint.h>
+  
+  struct every_type {
+      uint8_t p_u8;
+      int8_t p_i8;
+      uint16_t p_u16;
+      int16_t p_i16;
+      uint32_t p_u32;
+      int32_t p_i32;
+      uint64_t p_u64;
+      int64_t p_i64;
+      bool p_bool;
+      float p_f32;
+      double p_f64;
+      char p_str[17];
+  };
+  
+  #endif /* __JSMN_FORGE_H__ */
+  
+  '''
+# ---
+# name: test_render_snapshot[jsmn-vla]
+  '''
+  #ifndef __JSMN_FORGE_H__
+  #define __JSMN_FORGE_H__
+  #include <stdbool.h>
+  #include <stdint.h>
+  
+  struct vla__u32__n3 {
+      uint32_t len;
+      uint8_t _pad[4];
+      uint32_t items[3];
+  };
+  
+  struct vla__vla__u32__n3__n4 {
+      uint32_t len;
+      uint8_t _pad[4];
+      struct vla__u32__n3 items[4];
+  };
+  
+  struct vla__vla__vla__u32__n3__n4__n5 {
+      uint32_t len;
+      uint8_t _pad[4];
+      struct vla__vla__u32__n3__n4 items[5];
+  };
+  
+  struct vla__u32__d3__n4 {
+      uint32_t len;
+      uint8_t _pad[4];
+      uint32_t items[4][3];
+  };
+  
+  struct vla__vla__u32__d3__n4__n5 {
+      uint32_t len;
+      uint8_t _pad[4];
+      struct vla__u32__d3__n4 items[5];
+  };
+  
+  struct vla__vla__u32__n3__d4__n5 {
+      uint32_t len;
+      uint8_t _pad[4];
+      struct vla__u32__n3 items[5][4];
+  };
+  
+  struct vla__u32__d4x3__n5 {
+      uint32_t len;
+      uint8_t _pad[4];
+      uint32_t items[5][4][3];
+  };
+  
+  struct vla_combos {
+      struct vla__vla__vla__u32__n3__n4__n5 d_vvv;
+      struct vla__vla__u32__d3__n4__n5 d_vvf;
+      struct vla__vla__u32__n3__d4__n5 d_vfv;
+      struct vla__u32__d4x3__n5 d_vff;
+      struct vla__vla__u32__n3__n4 d_fvv[5];
+      struct vla__u32__d3__n4 d_fvf[5];
+      struct vla__u32__n3 d_ffv[5][4];
+      uint32_t d_fff[5][4][3];
+  };
+  
+  #endif /* __JSMN_FORGE_H__ */
+  
+  '''
+# ---
+# name: test_render_snapshot[jsmn]
+  '''
+  #ifndef __JSMN_FORGE_H__
+  #define __JSMN_FORGE_H__
+  #include <stdbool.h>
+  #include <stdint.h>
+  
+  struct child {
+      bool flag;
+      char name[33];
+  };
+  
+  union union1__u32 {
+      uint32_t value;
+  };
+  
+  struct optional__u32 {
+      bool present;
+      union union1__u32 maybe;
+  };
+  
+  struct vla__u32__n5 {
+      uint32_t len;
+      uint8_t _pad[4];
+      uint32_t items[5];
+  };
+  
+  struct vla__char__d17__n4 {
+      uint32_t len;
+      uint8_t _pad[4];
+      char items[4][17];
+  };
+  
+  struct parent {
+      struct child nested;
+      struct optional__u32 count;
+      struct vla__u32__n5 items;
+      struct vla__char__d17__n4 tags;
+  };
+  
+  struct sibling {
+      struct optional__u32 count;
+  };
+  
+  #endif /* __JSMN_FORGE_H__ */
+  
+  '''
+# ---
+# name: test_render_tables_snapshot[jsmn-every-type]
+  '''
+  #include "jsmn_forge.h"
+  #include "runtime.h"
+  #include <stddef.h>
+  
+  static const char rt_names[] =
+      "p_u8\0" /* 0 */
+      "p_i8\0" /* 5 */
+      "p_u16\0" /* 10 */
+      "p_i16\0" /* 16 */
+      "p_u32\0" /* 22 */
+      "p_i32\0" /* 28 */
+      "p_u64\0" /* 34 */
+      "p_i64\0" /* 40 */
+      "p_bool\0" /* 46 */
+      "p_f32\0" /* 53 */
+      "p_f64\0" /* 59 */
+      "p_str\0" /* 65 */
+  ;
+  
+  static const struct rt_array rt_arrays[] = {
+      /* [0] string char max=17 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+  };
+  
+  static const struct rt_field rt_fields[] = {
+      /* [0] every_type.p_u8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 0, offsetof(struct every_type, p_u8), 0xFFFF, RT_PRIM(RT_KIND_U8) },
+      /* [1] every_type.p_i8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 5, offsetof(struct every_type, p_i8), 0xFFFF, RT_PRIM(RT_KIND_I8) },
+      /* [2] every_type.p_u16 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 10, offsetof(struct every_type, p_u16), 0xFFFF, RT_PRIM(RT_KIND_U16) },
+      /* [3] every_type.p_i16 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 16, offsetof(struct every_type, p_i16), 0xFFFF, RT_PRIM(RT_KIND_I16) },
+      /* [4] every_type.p_u32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 22, offsetof(struct every_type, p_u32), 0xFFFF, RT_PRIM(RT_KIND_U32) },
+      /* [5] every_type.p_i32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 28, offsetof(struct every_type, p_i32), 0xFFFF, RT_PRIM(RT_KIND_I32) },
+      /* [6] every_type.p_u64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 34, offsetof(struct every_type, p_u64), 0xFFFF, RT_PRIM(RT_KIND_U64) },
+      /* [7] every_type.p_i64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 40, offsetof(struct every_type, p_i64), 0xFFFF, RT_PRIM(RT_KIND_I64) },
+      /* [8] every_type.p_bool @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 46, offsetof(struct every_type, p_bool), 0xFFFF, RT_PRIM(RT_KIND_BOOL) },
+      /* [9] every_type.p_f32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 53, offsetof(struct every_type, p_f32), 0xFFFF, RT_PRIM(RT_KIND_FLOAT) },
+      /* [10] every_type.p_f64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 59, offsetof(struct every_type, p_f64), 0xFFFF, RT_PRIM(RT_KIND_DOUBLE) },
+      /* [11] every_type.p_str @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 65, offsetof(struct every_type, p_str), 0xFFFF, RT_ARRAY(0) },
+  };
+  
+  static const struct rt_struct rt_structs[] = {
+      /* [0] every_type @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
+      { 12, 0, sizeof(struct every_type), 25, 0 },
+  };
+  
+  #define RT_IDX_EVERY_TYPE 0
+  
+  '''
+# ---
+# name: test_render_tables_snapshot[jsmn-vla]
+  '''
+  #include "jsmn_forge.h"
+  #include "runtime.h"
+  #include <stddef.h>
+  
+  static const char rt_names[] =
+      "d_vvv\0" /* 0 */
+      "d_vvf\0" /* 6 */
+      "d_vfv\0" /* 12 */
+      "d_vff\0" /* 18 */
+      "d_fvv\0" /* 24 */
+      "d_fvf\0" /* 30 */
+      "d_ffv\0" /* 36 */
+      "d_fff\0" /* 42 */
+  ;
+  
+  static const struct rt_array rt_arrays[] = {
+      /* [0] vla uint32_t max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      /* [1] vla vla__u32__n3 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
+      /* [2] vla vla__vla__u32__n3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
+      /* [3] fixed uint32_t max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      /* [4] vla uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(3) },
+      /* [5] vla vla__u32__d3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
+      /* [6] fixed uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
+      /* [7] vla vla__u32__n3 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(6) },
+      /* [8] fixed uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 4, 0, RT_ARRAY(3) },
+      /* [9] vla uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(8) },
+      /* [10] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
+      /* [11] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
+      /* [12] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(6) },
+      /* [13] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(8) },
+  };
+  
+  static const struct rt_field rt_fields[] = {
+      /* [0] vla_combos.d_vvv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 0, offsetof(struct vla_combos, d_vvv), 0xFFFF, RT_ARRAY(2) },
+      /* [1] vla_combos.d_vvf @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 6, offsetof(struct vla_combos, d_vvf), 0xFFFF, RT_ARRAY(5) },
+      /* [2] vla_combos.d_vfv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 12, offsetof(struct vla_combos, d_vfv), 0xFFFF, RT_ARRAY(7) },
+      /* [3] vla_combos.d_vff @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 18, offsetof(struct vla_combos, d_vff), 0xFFFF, RT_ARRAY(9) },
+      /* [4] vla_combos.d_fvv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 24, offsetof(struct vla_combos, d_fvv), 0xFFFF, RT_ARRAY(10) },
+      /* [5] vla_combos.d_fvf @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 30, offsetof(struct vla_combos, d_fvf), 0xFFFF, RT_ARRAY(11) },
+      /* [6] vla_combos.d_ffv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 36, offsetof(struct vla_combos, d_ffv), 0xFFFF, RT_ARRAY(12) },
+      /* [7] vla_combos.d_fff @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 42, offsetof(struct vla_combos, d_fff), 0xFFFF, RT_ARRAY(13) },
+  };
+  
+  static const struct rt_struct rt_structs[] = {
+      /* [0] vla_combos @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      { 8, 0, sizeof(struct vla_combos), 697, 0 },
+  };
+  
+  #define RT_IDX_VLA_COMBOS 0
+  
+  '''
+# ---
+# name: test_render_tables_snapshot[jsmn]
+  '''
+  #include "jsmn_forge.h"
+  #include "runtime.h"
+  #include <stddef.h>
+  
+  static const char rt_names[] =
+      "flag\0" /* 0 */
+      "name\0" /* 5 */
+      "nested\0" /* 10 */
+      "count\0" /* 17 */
+      "items\0" /* 23 */
+      "tags\0" /* 29 */
+  ;
+  
+  static const struct rt_array rt_arrays[] = {
+      /* [0] string char max=33 @ /forge:~1~1test~1render~1v0/components/schemas/child */
+      { RT_KIND_STRING, 0, 33, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+      /* [1] vla uint32_t max=5 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { RT_KIND_VLA, 0, 5, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      /* [2] string char max=17 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+      /* [3] vla char max=4 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(2) },
+  };
+  
+  static const struct rt_field rt_fields[] = {
+      /* [0] child.flag @ /forge:~1~1test~1render~1v0/components/schemas/child */
+      { 0, offsetof(struct child, flag), 0xFFFF, RT_PRIM(RT_KIND_BOOL) },
+      /* [1] child.name @ /forge:~1~1test~1render~1v0/components/schemas/child */
+      { 5, offsetof(struct child, name), 0xFFFF, RT_ARRAY(0) },
+      /* [2] parent.nested @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { 10, offsetof(struct parent, nested), 0xFFFF, RT_STRUCT(0) },
+      /* [3] parent.count (optional) @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { 17, offsetof(struct parent, count) + offsetof(struct optional__u32, maybe), offsetof(struct parent, count), RT_PRIM(RT_KIND_U32) },
+      /* [4] parent.items @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { 23, offsetof(struct parent, items), 0xFFFF, RT_ARRAY(1) },
+      /* [5] parent.tags @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { 29, offsetof(struct parent, tags), 0xFFFF, RT_ARRAY(3) },
+      /* [6] sibling.count (optional) @ /forge:~1~1test~1render~1v0/components/schemas/sibling */
+      { 17, offsetof(struct sibling, count) + offsetof(struct optional__u32, maybe), offsetof(struct sibling, count), RT_PRIM(RT_KIND_U32) },
+  };
+  
+  static const struct rt_struct rt_structs[] = {
+      /* [0] child @ /forge:~1~1test~1render~1v0/components/schemas/child */
+      { 2, 0, sizeof(struct child), 5, 0 },
+      /* [1] parent @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      { 4, 0, sizeof(struct parent), 18, 2 },
+      /* [2] sibling @ /forge:~1~1test~1render~1v0/components/schemas/sibling */
+      { 1, 0, sizeof(struct sibling), 3, 6 },
+  };
+  
+  #define RT_IDX_CHILD 0
+  #define RT_IDX_PARENT 1
+  #define RT_IDX_SIBLING 2
+  
+  '''
+# ---

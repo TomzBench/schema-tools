@@ -1,7 +1,0 @@
-resources:
-  - name: constraints
-    version: 0
-    http:
-      - schemas/constraints.openapi.yaml
-    if:
-      - CONFIG_CONSTRAINTS_ENABLE

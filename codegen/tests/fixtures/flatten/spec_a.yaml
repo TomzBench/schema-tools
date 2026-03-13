@@ -1,0 +1,113 @@
+openapi: "3.1.0"
+$id: "forge://test/main/v0"
+info:
+  title: Flatten test — entry points
+  version: "0.1.0"
+components:
+  schemas:
+    # ── Inline cases ────────────────────────────────────────────────
+
+    # Path A — top-level object
+    standalone:
+      type: object
+      x-jsmn-forge-as: standalone
+      properties:
+        value:
+          type: integer
+          format: uint32
+
+    # Path A→A — nested inline property
+    parent:
+      type: object
+      x-jsmn-forge-as: parent
+      properties:
+        child:
+          type: object
+          x-jsmn-forge-as: parent_child
+          properties:
+            flag:
+              type: boolean
+
+    # Path A→B→A — inline array of objects
+    array_host:
+      type: object
+      x-jsmn-forge-as: array_host
+      properties:
+        records:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            x-jsmn-forge-as: array_item
+            properties:
+              id:
+                type: integer
+                format: uint32
+
+    # Path A→B→A→A — nested object in array items
+    deep_array_host:
+      type: object
+      x-jsmn-forge-as: deep_array_host
+      properties:
+        entries:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            x-jsmn-forge-as: deep_array_entry
+            properties:
+              detail:
+                type: object
+                x-jsmn-forge-as: deep_array_detail
+                properties:
+                  code:
+                    type: integer
+                    format: uint16
+
+    # ── $ref cases ──────────────────────────────────────────────────
+
+    # Path A→C→A — property → $ref → object
+    ref_prop:
+      type: object
+      x-jsmn-forge-as: ref_prop
+      properties:
+        linked:
+          $ref: "forge://test/targets/v0#/components/schemas/target_a"
+
+    # Path A→C→A→A — property → $ref → object with nested child
+    ref_nested:
+      type: object
+      x-jsmn-forge-as: ref_nested
+      properties:
+        linked:
+          $ref: "forge://test/targets/v0#/components/schemas/target_b"
+
+    # Path A→B→C→A — array items → $ref → object
+    arr_ref_items:
+      type: object
+      x-jsmn-forge-as: arr_ref_items
+      properties:
+        things:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "forge://test/targets/v0#/components/schemas/target_a"
+
+    # Path A→C→B→A — property → $ref → array → object
+    ref_to_array:
+      type: object
+      x-jsmn-forge-as: ref_to_array
+      properties:
+        collection:
+          $ref: "forge://test/targets/v0#/components/schemas/target_c"
+
+    # Path A→B→C→A→A — array items → $ref → object with nested child
+    arr_ref_nested:
+      type: object
+      x-jsmn-forge-as: arr_ref_nested
+      properties:
+        entries:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "forge://test/targets/v0#/components/schemas/target_b"

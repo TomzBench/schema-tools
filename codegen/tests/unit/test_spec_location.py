@@ -1,5 +1,5 @@
 import pytest
-from jsmn_forge.spec.location import ROOT, Location
+from jsmn_forge.node import ROOT, Location
 
 # --- to_pointer ---
 
@@ -76,6 +76,15 @@ def test_from_pointer_unescape_both() -> None:
 def test_roundtrip(segments: tuple[str, ...]) -> None:
     loc = Location(segments)
     assert Location.from_pointer(loc.to_pointer()) == loc
+
+
+# --- from_segments ---
+
+
+def test_from_segments() -> None:
+    loc = Location.from_segments("forge://test/foo", "components", "schemas")
+    assert loc == ("forge://test/foo", "components", "schemas")
+    assert isinstance(loc, Location)
 
 
 # --- push ---

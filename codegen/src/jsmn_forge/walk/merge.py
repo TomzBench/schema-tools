@@ -4,8 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-from jsmn_forge.spec.location import ROOT, Location
-from jsmn_forge.spec.node import Behavior, ConflictPolicy, Node
+from jsmn_forge.node import ROOT, Behavior, ConflictPolicy, Location, Node
 
 if TYPE_CHECKING:
     from collections.abc import Callable

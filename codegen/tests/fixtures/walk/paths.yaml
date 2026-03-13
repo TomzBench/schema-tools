@@ -1,0 +1,43 @@
+paths:
+  /items/{id}:
+    get:
+      operationId: getItem
+      tags:
+        - inventory
+        - admin
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+        - name: verbose
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - name
+                  - active
+                properties:
+                  name:
+                    type: string
+                  active:
+                    type: boolean
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteItem
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted

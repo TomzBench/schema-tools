@@ -16,9 +16,12 @@ codegen/
   src/jsmn_forge/
     cli.py          # CLI entry point
     bundle.py       # Bundle logic for code generation
-    codegen.py      # Core code generation
-    spec/           # Spec parsing, diffing, sorting, and walking
+    node/           # Node types, behaviors, locations, refs
+    spec/           # Spec structure definitions (OpenAPI 3.1, JSON Schema)
+    walk/           # Tree operations (walk, normalize, diff, merge, join)
+    lang/jsmn/      # C code generation (IR types, flatten)
   tests/
-    fixtures/       # Test fixtures (templates, workspace specs)
-    test_*.py       # Test modules
+    fixtures/       # Test fixtures (specs, templates)
+    unit/           # Unit tests
+    integration/    # Integration tests
 ```

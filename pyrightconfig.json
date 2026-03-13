@@ -1,5 +1,6 @@
 {
   "include": ["codegen/src", "codegen/tests"],
+  "exclude": ["codegen/tests/e2e", "**/node_modules", "**/.venv"],
   "pythonVersion": "3.12",
   "typeCheckingMode": "standard",
   "reportMissingTypeStubs": false,
@@ -8,5 +9,6 @@
   "reportUnknownVariableType": false,
   "reportUnknownParameterType": false,
   "reportUnnecessaryIsInstance": "warning",
-  "reportUnnecessaryTypeIgnoreComment": "warning"
+  "reportUnnecessaryTypeIgnoreComment": "warning",
+  "reportUnnecessaryComparison": "warning"
 }

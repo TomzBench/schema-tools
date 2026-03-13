@@ -1,0 +1,53 @@
+openapi: "3.1.0"
+$id: "forge://test/render/v0"
+info:
+  title: Render walker test
+  version: "0.1.0"
+components:
+  schemas:
+    # Leaf struct — no deps, baseline emit
+    child:
+      type: object
+      x-jsmn-forge-as: child
+      required: [flag, name]
+      properties:
+        flag:
+          type: boolean
+        name:
+          type: string
+          maxLength: 32
+
+    # Refs child (dependency ordering), optional u32 (optional expansion),
+    # VLA of u32 maxItems=5 (VLA expansion), VLA of strings (string array)
+    parent:
+      type: object
+      x-jsmn-forge-as: parent
+      required: [nested, items, tags]
+      properties:
+        nested:
+          $ref: "forge://test/render/v0#/components/schemas/child"
+        count:
+          type: integer
+          format: uint32
+        items:
+          type: array
+          maxItems: 5
+          items:
+            type: integer
+            format: uint32
+        tags:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 16
+
+    # Optional u32 — shares optional__u32 / union1__u32 with parent (dedup)
+    sibling:
+      type: object
+      x-jsmn-forge-as: sibling
+      required: []
+      properties:
+        count:
+          type: integer
+          format: uint32

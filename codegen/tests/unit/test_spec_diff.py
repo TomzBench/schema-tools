@@ -1,11 +1,5 @@
-from jsmn_forge.spec import (
-    Extra,
-    Missing,
-    MissMatch,
-    diff,
-    sort_set,
-    sort_set_by,
-)
+from jsmn_forge.node import sort_set, sort_set_by
+from jsmn_forge.walk import Extra, Missing, MissMatch, diff
 
 
 def test_identical_returns_empty() -> None:

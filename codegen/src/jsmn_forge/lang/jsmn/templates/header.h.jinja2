@@ -1,0 +1,22 @@
+#ifndef {{ guard }}
+#define {{ guard }}
+#include <stdbool.h>
+#include <stdint.h>
+
+{% for decl in decls %}
+{% if decl is struct_decl %}
+struct {{ decl.ctype.name }} {
+{% for f in decl.fields %}
+    {{ f | field }};
+{% endfor %}
+};
+{% elif decl is union_decl %}
+union {{ decl.ctype.name }} {
+{% for v in decl.variants %}
+    {{ v | field }};
+{% endfor %}
+};
+{% endif %}
+
+{% endfor %}
+#endif /* {{ guard }} */

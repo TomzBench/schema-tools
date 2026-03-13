@@ -1,10 +1,9 @@
 from typing import Any
 
-from jsmn_forge.spec.location import ROOT, Location
-from jsmn_forge.spec.node import Behavior, Node
-from jsmn_forge.spec.ref import Ref
+from jsmn_forge.node import ROOT, Behavior, Location, Node, Ref
 
 
+# TODO cache anchors and strip duplicates
 def normalize(
     obj: Any,
     context: tuple[Node, Behavior],

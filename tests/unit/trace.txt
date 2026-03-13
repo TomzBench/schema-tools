@@ -1,0 +1,709 @@
+
+    ✻
+    |
+   ▟█▙     Claude Code v2.1.50
+ ▐▛███▜▌   Opus 4.6 · Claude Max
+▝▜█████▛▘  ~\git\altronix\jsmn-forge\tests\unit
+  ▘▘ ▝▝  
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Plan to implement                                                            │
+│                                                                              │
+│ Fix critical security issues in jsmn_forge.c                                 │
+│                                                                              │
+│ Context                                                                      │
+│                                                                              │
+│ Security audit found two critical issues when handling hostile JSON input:   │
+│                                                                              │
+│ 1. Integer overflow + silent truncation — tok_uint/tok_int have no           │
+│ overflow detection on the accumulator. Then decode_unsigned/decode_signed    │
+│ cast wide values to narrow types without range checking. An attacker can set │
+│ any integer field to any value.                                              │
+│ 2. Unbounded string read in encode — emit_str/len_str iterate until          │
+│ NUL with no length cap. If a struct is populated without proper NUL          │
+│ termination, encode reads past the field boundary.                           │
+│                                                                              │
+│ Files modified                                                               │
+│                                                                              │
+│ - lib/jsmn_forge.c — all runtime fixes                                       │
+│ - tests/unit/test_jsmn_forge.c — new security tests                          │
+│                                                                              │
+│ Changes                                                                      │
+│                                                                              │
+│ Fix 1a: Overflow detection in tok_uint                                       │
+│                                                                              │
+│ Add overflow check before multiply+add in the digit loop:                    │
+│                                                                              │
+│ static int32_t                                                               │
+│ tok_uint(const char *src, const jsmntok_t *tok, uint64_t *out)               │
+│ {                                                                            │
+│   ...                                                                        │
+│   uint64_t val = 0;                                                          │
+│   for (int i = tok->start; i < tok->end; i++) {                              │
+│     char c = src[i];                                                         │
+│     if (c < '0' || c > '9') { return JF_ERR_TYPE; }                          │
+│     uint64_t d = (uint64_t)(c - '0');                                        │
+│     if (val > UINT64_MAX / 10) { return JF_ERR_OVERFLOW; }                   │
+│     val *= 10;                                                               │
+│     if (val > UINT64_MAX - d) { return JF_ERR_OVERFLOW; }                    │
+│     val += d;                                                                │
+│   }                                                                          │
+│   ...                                                                        │
+│ }                                                                            │
+│                                                                              │
+│ Fix 1b: Overflow detection in tok_int                                        │
+│                                                                              │
+│ Same pattern for the magnitude loop. After the loop, validate the magnitude  │
+│ fits in int64_t range:                                                       │
+│                                                                              │
+│ /* INT64_MIN magnitude = INT64_MAX + 1 as uint64 */                          │
+│ uint64_t mag_limit = neg ? (uint64_t)INT64_MAX + 1 : (uint64_t)INT64_MAX;    │
+│ if (val > mag_limit) { return JF_ERR_OVERFLOW; }                             │
+│                                                                              │
+│ Requires #include <limits.h> (for UINT64_MAX, INT64_MAX). Actually           │
+│ UINT64_MAX and INT64_MAX are in <stdint.h> which is already included         │
+│ via the header.                                                              │
+│                                                                              │
+│ Fix 1c: Range-checking helpers                                               │
+│                                                                              │
+│ Two centralized helpers placed after the token helpers, before               │
+│ decode_unsigned/decode_signed:                                               │
+│                                                                              │
+│ static int32_t                                                               │
+│ check_uint_range(uint64_t v, uint8_t type)                                   │
+│ {                                                                            │
+│   // clang-format off                                                        │
+│   switch (type) {                                                            │
+│   case JF_U8:  return v <= UINT8_MAX  ? JF_OK : JF_ERR_OVERFLOW;             │
+│   case JF_U16: return v <= UINT16_MAX ? JF_OK : JF_ERR_OVERFLOW;             │
+│   case JF_U32: return v <= UINT32_MAX ? JF_OK : JF_ERR_OVERFLOW;             │
+│   case JF_U64: return JF_OK;                                                 │
+│   default:     return JF_ERR_TYPE;                                           │
+│   }                                                                          │
+│   // clang-format on                                                         │
+│ }                                                                            │
+│                                                                              │
+│ static int32_t                                                               │
+│ check_int_range(int64_t v, uint8_t type)                                     │
+│ {                                                                            │
+│   // clang-format off                                                        │
+│   switch (type) {                                                            │
+│   case JF_I8:  return (v >= INT8_MIN  && v <= INT8_MAX)  ? JF_OK :           │
+│ JF_ERR_OVERFLOW;                                                             │
+│   case JF_I16: return (v >= INT16_MIN && v <= INT16_MAX) ? JF_OK :           │
+│ JF_ERR_OVERFLOW;                                                             │
+│   case JF_I32: return (v >= INT32_MIN && v <= INT32_MAX) ? JF_OK :           │
+│ JF_ERR_OVERFLOW;                                                             │
+│   case JF_I64: return JF_OK;                                                 │
+│   default:     return JF_ERR_TYPE;                                           │
+│   }                                                                          │
+│   // clang-format on                                                         │
+│ }                                                                            │
+│                                                                              │
+│ Wire into decode_unsigned and decode_signed — one call each, between         │
+│ parse and store:                                                             │
+│                                                                              │
+│ static int32_t                                                               │
+│ decode_unsigned(void *slot, uint8_t type,                                    │
+│                 const char *src, const jsmntok_t *tok)                       │
+│ {                                                                            │
+│   uint64_t v;                                                                │
+│   int32_t rc = tok_uint(src, tok, &v);                                       │
+│   if (rc < 0) { return rc; }                                                 │
+│   rc = check_uint_range(v, type);       /* ← new */                          │
+│   if (rc < 0) { return rc; }                                                 │
+│   ...                                                                        │
+│ }                                                                            │
+│                                                                              │
+│ Fix 2: Bounded emit_str and len_str                                          │
+│                                                                              │
+│ Add uint16_t maxlen parameter to both functions. Bound the loop:             │
+│                                                                              │
+│ static int32_t                                                               │
+│ emit_str(uint8_t *dst, uint32_t dlen,                                        │
+│          const uint8_t *str, uint16_t maxlen)                                │
+│ {                                                                            │
+│   ...                                                                        │
+│   const uint8_t *end = str + maxlen;                                         │
+│   for (; str < end && *str; str++) {                                         │
+│   ...                                                                        │
+│ }                                                                            │
+│                                                                              │
+│ Same for len_str:                                                            │
+│ static uint32_t                                                              │
+│ len_str(const uint8_t *str, uint16_t maxlen)                                 │
+│                                                                              │
+│ Update call sites (2 total):                                                 │
+│ - encode_value JF_STRING: emit_str(dst, dlen, ..., fd->count)                │
+│ - len_value JF_STRING: len_str(..., fd->count)                               │
+│                                                                              │
+│ Tests                                                                        │
+│                                                                              │
+│ Add a small struct tiny with uint8 and int8 fields + descriptor (avoids      │
+│ modifying existing widget tests). New tests:                                 │
+│                                                                              │
+│ - test_decode_uint_overflow — number exceeding uint64 max (e.g., 25-digit    │
+│ number), expects JF_ERR_OVERFLOW                                             │
+│ - test_decode_int_overflow — number exceeding int64 range, expects           │
+│ JF_ERR_OVERFLOW                                                              │
+│ - test_decode_uint_range — value 300 in a uint8 field, expects               │
+│ JF_ERR_OVERFLOW                                                              │
+│ - test_decode_int_range — value 200 in an int8 field, expects                │
+│ JF_ERR_OVERFLOW                                                              │
+│ - test_decode_negative_for_unsigned — negative number in uint field,         │
+│ expects JF_ERR_TYPE (tok_uint rejects '-')                                   │
+│                                                                              │
+│ Verification                                                                 │
+│                                                                              │
+│ cd tests/unit && cmake -B build && cmake --build build && ctest --test-dir   │
+│ build                                                                        │
+│                                                                              │
+│ All existing 13 tests + new tests must pass.                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+● Read 2 files (ctrl+o to expand)
+
+● Let me check the header for the error codes and type definitions.
+
+● Explore(Find JF_ERR_OVERFLOW definition)
+  ⎿  Done (5 tool uses · 18.2k tokens · 9s)
+  (ctrl+o to expand)
+
+● Now I have everything I need. Let me implement all fixes.
+
+● Fix 1a: Overflow detection in tok_uint:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 9 lines, removed 1 line
+      72          if (c < '0' || c > '9') {
+      73              return JF_ERR_TYPE;
+      74          }
+      75 -        val = val * 10 + (uint64_t)(c - '0');                  
+      75 +        uint64_t d = (uint64_t)(c - '0');                      
+      76 +        if (val > UINT64_MAX / 10) {                           
+      77 +            return JF_ERR_OVERFLOW;                            
+      78 +        }                                                      
+      79 +        val *= 10;                                             
+      80 +        if (val > UINT64_MAX - d) {                            
+      81 +            return JF_ERR_OVERFLOW;                            
+      82 +        }                                                      
+      83 +        val += d;                                              
+      84      }
+      85      *out = val;
+      86      return JF_OK;
+
+● Fix 1b: Overflow detection in tok_int:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 14 lines, removed 1 line
+      104          if (c < '0' || c > '9') {
+      105              return JF_ERR_TYPE;
+      106          }
+      107 -        val = val * 10 + (uint64_t)(c - '0');                 
+      107 +        uint64_t d = (uint64_t)(c - '0');                     
+      108 +        if (val > UINT64_MAX / 10) {                          
+      109 +            return JF_ERR_OVERFLOW;                           
+      110 +        }                                                     
+      111 +        val *= 10;                                            
+      112 +        if (val > UINT64_MAX - d) {                           
+      113 +            return JF_ERR_OVERFLOW;                           
+      114 +        }                                                     
+      115 +        val += d;                                             
+      116      }
+      117 +    /* INT64_MIN magnitude = INT64_MAX + 1 as uint64 */       
+      118 +    uint64_t mag_limit = neg ? (uint64_t)INT64_MAX + 1 : (uint
+          +64_t)INT64_MAX;                                               
+      119 +    if (val > mag_limit) {                                    
+      120 +        return JF_ERR_OVERFLOW;                               
+      121 +    }                                                         
+      122      *out = neg ? -(int64_t)val : (int64_t)val;
+      123      return JF_OK;
+      124  }
+
+● Fix 1c: Add range-checking helpers and wire them in. Insert them between
+  tok_double and elem_size:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 30 lines
+      144      return JF_OK;
+      145  }
+      146  
+      147 +/* ── Range-checking helpers ─────────────────────────────────
+          +────────── */                                                 
+      148 +                                                              
+      149 +static int32_t                                                
+      150 +check_uint_range(uint64_t v, uint8_t type)                    
+      151 +{                                                             
+      152 +    // clang-format off                                       
+      153 +    switch (type) {                                           
+      154 +    case JF_U8:  return v <= UINT8_MAX  ? JF_OK : JF_ERR_OVERF
+          +LOW;                                                          
+      155 +    case JF_U16: return v <= UINT16_MAX ? JF_OK : JF_ERR_OVERF
+          +LOW;                                                          
+      156 +    case JF_U32: return v <= UINT32_MAX ? JF_OK : JF_ERR_OVERF
+          +LOW;                                                          
+      157 +    case JF_U64: return JF_OK;                                
+      158 +    default:     return JF_ERR_TYPE;                          
+      159 +    }                                                         
+      160 +    // clang-format on                                        
+      161 +}                                                             
+      162 +                                                              
+      163 +static int32_t                                                
+      164 +check_int_range(int64_t v, uint8_t type)                      
+      165 +{                                                             
+      166 +    // clang-format off                                       
+      167 +    switch (type) {                                           
+      168 +    case JF_I8:  return (v >= INT8_MIN  && v <= INT8_MAX)  ? J
+          +F_OK : JF_ERR_OVERFLOW;                                       
+      169 +    case JF_I16: return (v >= INT16_MIN && v <= INT16_MAX) ? J
+          +F_OK : JF_ERR_OVERFLOW;                                       
+      170 +    case JF_I32: return (v >= INT32_MIN && v <= INT32_MAX) ? J
+          +F_OK : JF_ERR_OVERFLOW;                                       
+      171 +    case JF_I64: return JF_OK;                                
+      172 +    default:     return JF_ERR_TYPE;                          
+      173 +    }                                                         
+      174 +    // clang-format on                                        
+      175 +}                                                             
+      176 +                                                              
+      177  /* ═══════════════════════════════════════════════════════════
+           ════════════
+      178   *  Field helpers
+      179   * ═══════════════════════════════════════════════════════════
+           ════════════ */
+
+● Wire check_uint_range into decode_unsigned:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 4 lines
+      210      if (rc < 0) {
+      211          return rc;
+      212      }
+      213 +    rc = check_uint_range(v, type);                           
+      214 +    if (rc < 0) {                                             
+      215 +        return rc;                                            
+      216 +    }                                                         
+      217      // clang-format off
+      218    switch (type) {
+      219       case JF_U8:  *(uint8_t *)slot  = (uint8_t)v;   break;
+
+● Wire check_int_range into decode_signed:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 4 lines
+      235      if (rc < 0) {
+      236          return rc;
+      237      }
+      238 +    rc = check_int_range(v, type);                            
+      239 +    if (rc < 0) {                                             
+      240 +        return rc;                                            
+      241 +    }                                                         
+      242      // clang-format off
+      243    switch (type) {
+      244       case JF_I8:  *(int8_t *)slot  = (int8_t)v;  break;
+
+● Fix 2: Bound emit_str with maxlen parameter:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 3 lines, removed 2 lines
+      510  }
+      511  
+      512  static int32_t
+      513 -emit_str(uint8_t *dst, uint32_t dlen, const uint8_t *str)     
+      513 +emit_str(uint8_t *dst, uint32_t dlen, const uint8_t *str, uint
+          +16_t maxlen)                                                  
+      514  {
+      515      uint32_t n = 0;
+      516      if (n >= dlen) {
+     ...
+      518      }
+      519      dst[n++] = '"';
+      520  
+      521 -    for (; *str; str++) {                                     
+      521 +    const uint8_t *end = str + maxlen;                        
+      522 +    for (; str < end && *str; str++) {                        
+      523          uint8_t c = *str;
+      524          if (c == '"' || c == '\\') {
+      525              if (n + 2 > dlen) {
+
+● Update emit_str call site in encode_value:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 1 line, removed 1 line
+      638          return n;
+      639      }
+      640      case JF_STRING:
+      641 -        return emit_str(dst, dlen, (const uint8_t *)slot);    
+      641 +        return emit_str(dst, dlen, (const uint8_t *)slot, fd->
+          +count);                                                       
+      642      case JF_OBJECT:
+      643          if (!fd->child) {
+      644              return JF_ERR_TYPE;
+
+● Bound len_str with maxlen parameter:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 3 lines, removed 2 lines
+      766   * ═══════════════════════════════════════════════════════════
+           ════════════ */
+      767  
+      768  static uint32_t
+      769 -len_str(const uint8_t *str)                                   
+      769 +len_str(const uint8_t *str, uint16_t maxlen)                  
+      770  {
+      771      uint32_t n = 2; /* quotes */
+      772 -    for (; *str; str++) {                                     
+      772 +    const uint8_t *end = str + maxlen;                        
+      773 +    for (; str < end && *str; str++) {                        
+      774          uint8_t c = *str;
+      775          if (c == '"' || c == '\\' || c == '\n' || c == '\r' ||
+            c == '\t') {
+      776              n += 2;
+
+● Update len_str call site in len_value:
+
+● Update(~\git\altronix\jsmn-forge\lib\jsmn_forge.c)
+  ⎿  Added 1 line, removed 1 line
+      836          return n > 0 ? (uint32_t)n : 1;
+      837      }
+      838      case JF_STRING:
+      839 -        return len_str((const uint8_t *)slot);                
+      839 +        return len_str((const uint8_t *)slot, fd->count);     
+      840      case JF_OBJECT:
+      841          return fd->child ? jf_len(slot, fd->child) : 0;
+      842      default:
+
+● Now add the security tests. I'll add the struct tiny + descriptor + 5 new test
+   functions before main:
+
+● Update(test_jsmn_forge.c)
+  ⎿  Added 102 lines
+      464  }
+      465  
+      466  /* ═══════════════════════════════════════════════════════════
+           ════════════
+      467 + *  Security test struct — small types to exercise range check
+          +ing                                                           
+      468 + * ═══════════════════════════════════════════════════════════
+          +════════════ */                                               
+      469 +                                                              
+      470 +struct tiny {                                                 
+      471 +    uint8_t u;                                                
+      472 +    int8_t s;                                                 
+      473 +};                                                            
+      474 +                                                              
+      475 +static const struct jf_field tiny_fields[] = {                
+      476 +    {.name = "u",                                             
+      477 +     .child = NULL,                                           
+      478 +     .offset = (uint16_t)offsetof(struct tiny, u),            
+      479 +     .present = 0,                                            
+      480 +     .len_offset = 0,                                         
+      481 +     .count = 0,                                              
+      482 +     .type = JF_U8,                                           
+      483 +     .flags = 0},                                             
+      484 +    {.name = "s",                                             
+      485 +     .child = NULL,                                           
+      486 +     .offset = (uint16_t)offsetof(struct tiny, s),            
+      487 +     .present = 0,                                            
+      488 +     .len_offset = 0,                                         
+      489 +     .count = 0,                                              
+      490 +     .type = JF_I8,                                           
+      491 +     .flags = 0},                                             
+      492 +};                                                            
+      493 +                                                              
+      494 +static const struct jf_struct tiny_desc = {                   
+      495 +    .fields = tiny_fields,                                    
+      496 +    .size = (uint16_t)sizeof(struct tiny),                    
+      497 +    .ntoks = 5,                                               
+      498 +    .nfields = 2,                                             
+      499 +    .pad = {0},                                               
+      500 +};                                                            
+      501 +                                                              
+      502 +#define TINY_NTOKS 8                                          
+      503 +                                                              
+      504 +/* ═══════════════════════════════════════════════════════════
+          +════════════                                                  
+      505 + *  Security tests — overflow and range checking              
+      506 + * ═══════════════════════════════════════════════════════════
+          +════════════ */                                               
+      507 +                                                              
+      508 +void                                                          
+      509 +test_decode_uint_overflow(void)                               
+      510 +{                                                             
+      511 +    /* 25-digit number exceeds uint64 max */                  
+      512 +    const char json[] = "{\"u\":9999999999999999999999999,\"s\
+          +":0}";                                                        
+      513 +    struct tiny t;                                            
+      514 +    jsmntok_t toks[TINY_NTOKS];                               
+      515 +    int32_t rc = jf_decode(                                   
+      516 +        &t, &tiny_desc, json, (uint32_t)strlen(json), toks, TI
+          +NY_NTOKS);                                                    
+      517 +    TEST_ASSERT_EQUAL_INT32(JF_ERR_OVERFLOW, rc);             
+      518 +}                                                             
+      519 +                                                              
+      520 +void                                                          
+      521 +test_decode_int_overflow(void)                                
+      522 +{                                                             
+      523 +    /* number exceeding int64 range */                        
+      524 +    const char json[] = "{\"u\":0,\"s\":-999999999999999999999
+          +9999}";                                                       
+      525 +    struct tiny t;                                            
+      526 +    jsmntok_t toks[TINY_NTOKS];                               
+      527 +    int32_t rc = jf_decode(                                   
+      528 +        &t, &tiny_desc, json, (uint32_t)strlen(json), toks, TI
+          +NY_NTOKS);                                                    
+      529 +    TEST_ASSERT_EQUAL_INT32(JF_ERR_OVERFLOW, rc);             
+      530 +}                                                             
+      531 +                                                              
+      532 +void                                                          
+      533 +test_decode_uint_range(void)                                  
+      534 +{                                                             
+      535 +    /* 300 doesn't fit in uint8 */                            
+      536 +    const char json[] = "{\"u\":300,\"s\":0}";                
+      537 +    struct tiny t;                                            
+      538 +    jsmntok_t toks[TINY_NTOKS];                               
+      539 +    int32_t rc = jf_decode(                                   
+      540 +        &t, &tiny_desc, json, (uint32_t)strlen(json), toks, TI
+          +NY_NTOKS);                                                    
+      541 +    TEST_ASSERT_EQUAL_INT32(JF_ERR_OVERFLOW, rc);             
+      542 +}                                                             
+      543 +                                                              
+      544 +void                                                          
+      545 +test_decode_int_range(void)                                   
+      546 +{                                                             
+      547 +    /* 200 doesn't fit in int8 */                             
+      548 +    const char json[] = "{\"u\":0,\"s\":200}";                
+      549 +    struct tiny t;                                            
+      550 +    jsmntok_t toks[TINY_NTOKS];                               
+      551 +    int32_t rc = jf_decode(                                   
+      552 +        &t, &tiny_desc, json, (uint32_t)strlen(json), toks, TI
+          +NY_NTOKS);                                                    
+      553 +    TEST_ASSERT_EQUAL_INT32(JF_ERR_OVERFLOW, rc);             
+      554 +}                                                             
+      555 +                                                              
+      556 +void                                                          
+      557 +test_decode_negative_for_unsigned(void)                       
+      558 +{                                                             
+      559 +    /* negative number in uint field → tok_uint rejects '-' */
+      560 +    const char json[] = "{\"u\":-1,\"s\":0}";                 
+      561 +    struct tiny t;                                            
+      562 +    jsmntok_t toks[TINY_NTOKS];                               
+      563 +    int32_t rc = jf_decode(                                   
+      564 +        &t, &tiny_desc, json, (uint32_t)strlen(json), toks, TI
+          +NY_NTOKS);                                                    
+      565 +    TEST_ASSERT_EQUAL_INT32(JF_ERR_TYPE, rc);                 
+      566 +}                                                             
+      567 +                                                              
+      568 +/* ═══════════════════════════════════════════════════════════
+          +════════════                                                  
+      569   *  Main
+      570   * ═══════════════════════════════════════════════════════════
+           ════════════ */
+      571  
+
+● Now register the new tests in main:
+
+● Update(test_jsmn_forge.c)
+  ⎿  Added 7 lines
+      591    /* Length */
+      592    RUN_TEST(test_len_matches_encode);
+      593  
+      594 +  /* Security — overflow and range */                         
+      595 +  RUN_TEST(test_decode_uint_overflow);                        
+      596 +  RUN_TEST(test_decode_int_overflow);                         
+      597 +  RUN_TEST(test_decode_uint_range);                           
+      598 +  RUN_TEST(test_decode_int_range);                            
+      599 +  RUN_TEST(test_decode_negative_for_unsigned);                
+      600 +                                                              
+      601    /* Utilities */
+      602    RUN_TEST(test_tok_skip_flat);
+      603    RUN_TEST(test_tok_skip_nested);
+
+● Now build and run tests:
+
+● Bash(cd /c/Users/thomas/git/altronix/jsmn-forge/tests/unit && cmake -B build
+      2>&1)
+  ⎿  -- Configuring done (1.4s)
+     -- Generating done (0.1s)
+     -- Build files have been written to: C:/Users/thomas/git/altronix/jsmn
+     -forge/tests/unit/build
+
+● Bash(cd /c/Users/thomas/git/altronix/jsmn-forge/tests/unit && cmake --build
+      build 2>&1)
+  ⎿  [ 16%] Building C object CMakeFiles/jsmn_forge.dir/C_/Users/thomas/git
+     /altronix/jsmn-forge/lib/jsmn_forge.c.obj
+     [ 33%] Linking C static library libjsmn_forge.a
+     … +6 lines (ctrl+o to expand)
+
+● Bash(cd /c/Users/thomas/git/altronix/jsmn-forge/tests/unit && ctest --test-dir
+       build --output-on-failure 2>&1)
+  ⎿  Test project C:/Users/thomas/git/altronix/jsmn-forge/tests/unit/build
+         Start 1: test_jsmn_forge
+     1/1 Test #1: test_jsmn_forge ..................   Passed    0.01 sec
+     … +4 lines (ctrl+o to expand)
+
+● Let me verify all 18 individual test cases ran:
+
+● Bash(cd /c/Users/thomas/git/altronix/jsmn-forge/tests/unit &&
+      ./build/test_jsmn_forge.exe 2>&1)
+  ⎿  C:/Users/thomas/git/altronix/jsmn-forge/tests/unit/test_jsmn_forge.c:5
+     78:test_decode_all_fields_present:PASS
+     C:/Users/thomas/git/altronix/jsmn-forge/tests/unit/test_jsmn_forge.c:5
+     … +26 lines (ctrl+o to expand)
+
+● All 18 tests pass (13 existing + 5 new).
+
+● All fixes implemented and verified:
+
+  1. tok_uint — overflow detection before multiply+add (rejects numbers >
+  UINT64_MAX)
+  2. tok_int — same overflow detection + magnitude limit check for
+  INT64_MIN/INT64_MAX
+  3. check_uint_range/check_int_range — centralized range validators wired into
+  decode_unsigned/decode_signed
+  4. emit_str/len_str — bounded by maxlen parameter, call sites pass fd->count
+  5. 5 new security tests — all passing, covering uint overflow, int overflow,
+  uint range, int range, and negative-for-unsigned
+
+  18 tests, 0 failures.
+
+✻ Worked for 2m 52s
+
+❯ can you show me stack traces of the public api entry points traced to all 
+   potential leave routines in a treel ike structure                        
+
+● Read 1 file (ctrl+o to expand)
+
+● Here are all five public entry points with their full call trees. Leaves show
+  the possible return codes.
+
+  jf_decode
+  ├── jsmn_init                                    [external]
+  ├── jsmn_parse                                   [external]
+  │   ├─→ JF_ERR_PARSE                            (r < 0)
+  │   └─→ JF_ERR_TYPE                             (r < 1)
+  └── jf_decode_object ◄─────────────────────────── [also public, see below]
+      └─→ (propagate)
+
+
+  jf_decode_object                                  [public, recursive via
+  JF_OBJECT]
+  ├─→ JF_ERR_TYPE                                  (not JSMN_OBJECT)
+  ├── memset                                        [libc]
+  ├── tok_eq                                        [leaf: bool]
+  ├── tok_is_null                                   [leaf: bool]
+  │   └─→ JF_ERR_TYPE                              (null on non-optional)
+  ├── decode_array
+  │   ├─→ JF_ERR_TYPE                              (not JSMN_ARRAY)
+  │   ├─→ JF_ERR_OVERFLOW                          (count mismatch)
+  │   ├── elem_size                                 [leaf: uint16_t]
+  │   ├── decode_value
+  │   │   ├── tok_bool                              [leaf]
+  │   │   │   ├─→ JF_ERR_TYPE                      (not primitive / not t/f)
+  │   │   │   └─→ JF_OK
+  │   │   ├── decode_unsigned
+  │   │   │   ├── tok_uint                          [leaf]
+  │   │   │   │   ├─→ JF_ERR_TYPE                  (not primitive / non-digit)
+  │   │   │   │   ├─→ JF_ERR_OVERFLOW              (accumulator overflow)
+  │   │   │   │   └─→ JF_OK
+  │   │   │   ├── check_uint_range                  [leaf]
+  │   │   │   │   ├─→ JF_ERR_OVERFLOW              (value > type max)
+  │   │   │   │   ├─→ JF_ERR_TYPE                  (bad type tag)
+  │   │   │   │   └─→ JF_OK
+  │   │   │   └─→ JF_OK
+  │   │   ├── decode_signed
+  │   │   │   ├── tok_int                           [leaf]
+  │   │   │   │   ├─→ JF_ERR_TYPE                  (not primitive / non-digit)
+  │   │   │   │   ├─→ JF_ERR_OVERFLOW              (accumulator / magnitude)
+  │   │   │   │   └─→ JF_OK
+  │   │   │   ├── check_int_range                   [leaf]
+  │   │   │   │   ├─→ JF_ERR_OVERFLOW              (value outside type range)
+  │   │   │   │   ├─→ JF_ERR_TYPE                  (bad type tag)
+  │   │   │   │   └─→ JF_OK
+  │   │   │   └─→ JF_OK
+  │   │   ├── tok_double                            [leaf]
+  │   │   │   ├─→ JF_ERR_TYPE                      (not primitive / strtod fail)
+  │   │   │   ├─→ JF_ERR_OVERFLOW                  (token too long for buf)
+  │   │   │   └─→ JF_OK
+  │   │   ├── [JF_STRING inline]
+  │   │   │   ├─→ JF_ERR_TYPE                      (not JSMN_STRING)
+  │   │   │   ├─→ JF_ERR_OVERFLOW                  (len >= fd->count)
+  │   │   │   └─→ JF_OK
+  │   │   ├── [JF_OBJECT]
+  │   │   │   ├─→ JF_ERR_TYPE                      (no child)
+  │   │   │   └── jf_decode_object                  [recursive ↑]
+  │   │   └─→ JF_ERR_TYPE                          (default / unknown type)
+  │   └── jf_tok_skip                               [leaf: int]
+  ├── decode_value                                  (same subtree as above)
+  ├── jf_tok_skip                                   [leaf: int]
+  ├─→ JF_ERR_REQUIRED                              (missing required field)
+  └── jf_tok_skip → return value                    (success: token count)
+
+
+  jf_encode                                         [public, recursive via
+  JF_OBJECT]
+  ├─→ JF_ERR_BUFFER                                (dlen exhausted, many sites)
+  ├── emit_key                                      [leaf]
+  │   └─→ JF_ERR_BUFFER
+  ├── encode_array
+  │   ├─→ JF_ERR_BUFFER
+  │   ├── elem_size                                 [leaf: uint16_t]
+  │   └── encode_value
+  │       ├── [JF_BOOL inline]
+  │       │   └─→ JF_ERR_BUFFER
+  │       ├── emit_uint                             [leaf]
+  │       │   └─→ JF_ERR_BUFFER
+  │       ├── emit_int
+  │       │   ├── emit_uint                         [leaf]
+  │       │   │   └─→ JF_ERR_BUFFER
+  │       │   └─→ JF_ERR_BUFFER                    (sign byte)
+  │       ├── [JF_FLOAT/DOUBLE inline — snprintf]
+  │       │   └─→ JF_ERR_BUFFER
+  │       ├── emit_str                              [leaf, bounded by maxlen]
+  │       │   └─→ JF_ERR_BUFFER
+  │       ├── [JF_OBJECT]
+  │       │   ├─→ JF_ERR_TYPE                      (no child)
+  │       │   └── jf_encode                         [recursive ↑]
+  │       └─→ JF_ERR_TYPE                          (default / unknown type)
+  ├── encode_value                                  (same subtree as above)
+  └─→ JF_OK                                        (returns byte count)
+
+
+  jf_len                                            [public, recursive via
+  JF_OBJECT]
+  ├── strlen                                        [libc]
+  ├── len_array
+  │   ├── elem_size                                 [leaf: uint16_t]
+  │   └── len_value
+  │       ├── len_uint                              [leaf: uint32_t]
+  │       ├── len_int
+  │       │   └── len_uint                          [leaf: uint32_t]
+  │       ├── [JF_FLOAT/DOUBLE inline — snprintf]
+  │       ├── len_str                               [leaf, bounded by maxlen]
+  │       ├── [JF_OBJECT]
+  │       │   └── jf_len                            [recursive ↑]
+  │       └── 0                                     (default / unknown type)
+  ├── len_value                                     (same subtree as above)
+  └─→ uint32_t                                     (always succeeds)
+
+
+  jf_tok_skip                                       [public, leaf]
+  └─→ int                                          (always succeeds)
+
+  Summary of all possible error returns by entry point:
+
+  Entry point: jf_decode
+  Possible errors: JF_ERR_PARSE, JF_ERR_TYPE, JF_ERR_REQUIRED, JF_ERR_OVERFLOW
+  ────────────────────────────────────────
+  Entry point: jf_decode_object
+  Possible errors: JF_ERR_TYPE, JF_ERR_REQUIRED, JF_ERR_OVERFLOW
+  ────────────────────────────────────────
+  Entry point: jf_encode
+  Possible errors: JF_ERR_BUFFER, JF_ERR_TYPE
+  ────────────────────────────────────────
+  Entry point: jf_len
+  Possible errors: (none — always returns a count)
+  ────────────────────────────────────────
+  Entry point: jf_tok_skip
+  Possible errors: (none — always returns a count)
+
+✻ Crunched for 45s

@@ -6,3 +6,5 @@ BreakBeforeBraces: Linux
 BinPackParameters: false
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
+InsertBraces: true
+IndentWidth: 4

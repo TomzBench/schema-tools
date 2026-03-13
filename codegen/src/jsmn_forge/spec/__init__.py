@@ -1,29 +1,26 @@
-from .behavior import SortKey, canonical, identity_key, sort_set, sort_set_by
-from .diff import (
-    Diff,
-    Extra,
-    Missing,
-    MissMatch,
-    diff,
-    extra,
-    missing,
-    missmatch,
+from jsmn_forge.node import (
+    Behavior,
+    MapNode,
+    ObjectNode,
+    SortKey,
+    canonical,
+    identity_key,
+    sort_set,
+    sort_set_by,
 )
-from .openapi_3_1 import merge
+
+from .openapi_3_1 import OpenApi31Keys
+from .openapi_3_1 import obj_root as OPENAPI_3_1
 
 __all__ = [
-    "Diff",
-    "Extra",
-    "MissMatch",
-    "Missing",
+    "OPENAPI_3_1",
+    "Behavior",
+    "MapNode",
+    "ObjectNode",
+    "OpenApi31Keys",
     "SortKey",
     "canonical",
-    "diff",
-    "extra",
     "identity_key",
-    "merge",
-    "missing",
-    "missmatch",
     "sort_set",
     "sort_set_by",
 ]

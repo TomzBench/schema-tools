@@ -1,0 +1,39 @@
+openapi: "3.1.0"
+$id: "forge://test/targets/v0"
+info:
+  title: Flatten test — $ref targets
+  version: "0.1.0"
+components:
+  schemas:
+    # Simple object (used by: A→C→A, A→B→C→A)
+    target_a:
+      type: object
+      x-jsmn-forge-as: target_a
+      properties:
+        id:
+          type: integer
+          format: uint32
+
+    # Object with nested child (used by: A→C→A→A, A→B→C→A→A)
+    target_b:
+      type: object
+      x-jsmn-forge-as: target_b
+      properties:
+        inner:
+          type: object
+          x-jsmn-forge-as: target_b_child
+          properties:
+            flag:
+              type: boolean
+
+    # Array of objects (used by: A→C→B→A)
+    target_c:
+      type: array
+      maxItems: 6
+      items:
+        type: object
+        x-jsmn-forge-as: target_c_item
+        properties:
+          value:
+            type: integer
+            format: uint32
