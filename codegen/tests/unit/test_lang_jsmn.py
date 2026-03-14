@@ -1,5 +1,11 @@
 import pytest
-from jsmn_forge.lang.jsmn import CType, Dim, Field, Variant, field, mangle
+from jsmn_forge.lang.jsmn import (
+    CType,
+    Dim,
+    Variant,
+    mangle,
+    resolve_ctype,
+)
 
 
 @pytest.mark.parametrize(
@@ -47,29 +53,6 @@ def test_mangle_vla_of_fixed() -> None:
     assert mangle(CType("uint32_t", dims)) == "vla__u32__d3__n4"
 
 
-def test_field_required_primitive() -> None:
-    assert field(Field("flag", CType("bool"), True)) == "bool flag"
-
-
-def test_field_required_primitive_dims() -> None:
-    f = Field("name", CType("uint8_t", (Dim(32, 32),)), True)
-    assert field(f) == "uint8_t name[32]"
-
-
-def test_field_required_object() -> None:
-    assert field(Field("nested", CType("thing"), True)) == "struct thing nested"
-
-
-def test_field_required_vla() -> None:
-    f = Field("nums", CType("uint32_t", (Dim(0, 3),)), True)
-    assert field(f) == "struct vla__u32__n3 nums"
-
-
-def test_field_optional() -> None:
-    f = Field("count", CType("uint32_t"), False)
-    assert field(f) == "struct optional__u32 count"
-
-
 # --- Union mangling ---
 
 
@@ -106,15 +89,59 @@ def test_mangle_union_with_fixed_dim_variant() -> None:
     assert mangle(variants) == "union2__bool__u8__d32"
 
 
-def test_field_union_required() -> None:
-    """Required union field uses 'union' qualifier."""
-    variants = (Variant("bar", CType("bar")), Variant("foo", CType("foo")))
-    f = Field("status", variants, True)
-    assert field(f) == "union union2__bar__foo status"
+# --- resolve_ctype tests ---
 
 
-def test_field_union_optional() -> None:
-    """Optional union wraps in struct optional__, not union optional__."""
-    variants = (Variant("bar", CType("bar")), Variant("foo", CType("foo")))
-    f = Field("status", variants, False)
-    assert field(f) == "struct optional__union2__bar__foo status"
+def test_resolve_scalar_primitive() -> None:
+    assert resolve_ctype(CType("uint32_t")) == CType("uint32_t")
+
+
+def test_resolve_fixed_dims() -> None:
+    ct = CType("uint8_t", (Dim(32, 32),))
+    assert resolve_ctype(ct) == ct
+
+
+def test_resolve_string_dim() -> None:
+    ct = CType("char", (Dim(33, 33),))
+    assert resolve_ctype(ct) == ct
+
+
+def test_resolve_object_ref() -> None:
+    assert resolve_ctype(CType("child")) == CType("child")
+
+
+def test_resolve_single_vla() -> None:
+    assert resolve_ctype(CType("uint32_t", (Dim(0, 5),))) == CType("vla__u32__n5")
+
+
+def test_resolve_nested_vla() -> None:
+    dims = (Dim(0, 5), Dim(0, 4), Dim(0, 3))
+    assert resolve_ctype(CType("uint32_t", dims)) == CType(
+        "vla__vla__vla__u32__n3__n4__n5"
+    )
+
+
+def test_resolve_leading_fixed_vla() -> None:
+    """Leading fixed dims stay as dims; inner VLAs collapse into name."""
+    dims = (Dim(5, 5), Dim(0, 4), Dim(0, 3))
+    assert resolve_ctype(CType("uint32_t", dims)) == CType(
+        "vla__vla__u32__n3__n4", (Dim(5, 5),)
+    )
+
+
+def test_resolve_multi_fixed_then_vla() -> None:
+    dims = (Dim(5, 5), Dim(4, 4), Dim(0, 3))
+    assert resolve_ctype(CType("uint32_t", dims)) == CType(
+        "vla__u32__n3", (Dim(5, 5), Dim(4, 4))
+    )
+
+
+def test_resolve_all_fixed() -> None:
+    dims = (Dim(5, 5), Dim(4, 4), Dim(3, 3))
+    ct = CType("uint32_t", dims)
+    assert resolve_ctype(ct) == ct
+
+
+def test_resolve_vla_of_string() -> None:
+    dims = (Dim(0, 4), Dim(17, 17))
+    assert resolve_ctype(CType("char", dims)) == CType("vla__char__d17__n4")

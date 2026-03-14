@@ -17,59 +17,35 @@ from .descriptor import (
     add_array_with_cache,
     sum_ntoks_with_cache,
 )
-from .filters import filters, mangle
+from .filters import filters, tests
 from .flatten import flatten_with_resolver
+from .ir import CDecl, CStruct, CType, CUnion, Field, FixedDims
+from .mangle import dim_walk, make_maybe, make_optional, make_vla, mangle
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from jsmn_forge.node import Location
     from referencing._core import Resolver
-from .ir import (
-    CDecl,
-    CStruct,
-    CType,
-    CUnion,
-    Dim,
-    Field,
-    FixedDims,
-    Variant,
-)
 
 
-def _make_optional(inner: CType, loc: Location) -> CStruct:
-    ctype = CType(inner.mangle(optional=True))
-    return CStruct(
-        ctype,
-        loc,
-        [
-            Field("present", CType("bool")),
-            Field("maybe", (Variant("value", inner),)),
-        ],
-    )
+def resolve_ctype(ctype: CType, optional: bool = False) -> CType:
+    """Collapse VLA dims into wrapper names, keep leading fixed dims."""
+    inner = CType(ctype.name)
+    for group in ctype.dim_groups():
+        if isinstance(group, FixedDims):
+            inner = CType(inner.name, group.dims)
+        else:
+            spec = CType(inner.name, (group, *inner.dims))
+            inner = CType(mangle(spec))
+    if optional:
+        return CType(mangle(inner, optional=True))
+    else:
+        return inner
 
 
-def _make_maybe(inner: CType, loc: Location) -> CUnion:
-    variants = (Variant("value", inner),)
-    ctype = CType(mangle(variants))
-    return CUnion(ctype, loc, [Variant("value", inner)])
-
-
-def _make_vla(ctype: CType, loc: Location) -> CStruct:
-    cap = ctype.dims[0].max
-    rest = ctype.dims[1:]
-    return CStruct(
-        CType(ctype.mangle()),
-        loc,
-        [
-            Field("len", CType("uint32_t")),
-            Field("_pad", CType("uint8_t", (Dim(4, 4),))),
-            Field("items", CType(ctype.name, (Dim(cap, cap), *rest))),
-        ],
-    )
-
-
-def sort_and_extend_decls(decls: dict[CType, CDecl]) -> list[CDecl]:
+def sort_decls(decls: dict[CType, CDecl]) -> list[CDecl]:
+    """Dependency-order user-defined decls (no synthetic wrappers)."""
     cache: set[CType] = set()
     ret: list[CDecl] = []
 
@@ -79,14 +55,6 @@ def sort_and_extend_decls(decls: dict[CType, CDecl]) -> list[CDecl]:
         if isinstance(curr, CStruct):
             for prop in curr.fields:
                 if isinstance(prop.ctype, CType):
-                    prop_loc = curr.loc.push(prop.name)
-                    if not prop.required:
-                        walker(_make_maybe(prop.ctype, prop_loc))
-                        walker(_make_optional(prop.ctype, prop_loc))
-                    for group, spec in prop.ctype.dim_walk():
-                        if isinstance(group, FixedDims):
-                            continue
-                        walker(_make_vla(spec, prop_loc))
                     if prop.ctype in decls:
                         walker(decls[prop.ctype])
                 else:
@@ -95,17 +63,52 @@ def sort_and_extend_decls(decls: dict[CType, CDecl]) -> list[CDecl]:
                             walker(decls[v.ctype])
             cache.add(curr.ctype)
             ret.append(curr)
-        elif isinstance(curr, CUnion):
-            # TODO this is minimally required for optional types. oneof support
-            #      will need proper walker
-            cache.add(curr.ctype)
-            ret.append(curr)
         else:
             raise NotImplementedError
 
     for decl in decls.values():
         walker(decl)
+    return ret
 
+
+def extend_decls(ordered: list[CDecl]) -> list[CDecl]:
+    """Create synthetic wrappers and resolve field CTypes in one pass."""
+    cache: set[CType] = set()
+    ret: list[CDecl] = []
+
+    def emit(d: CDecl) -> None:
+        if d.ctype not in cache:
+            cache.add(d.ctype)
+            ret.append(d)
+
+    for d in ordered:
+        if isinstance(d, CStruct):
+            fields: list[Field] = []
+            for f in d.fields:
+                if not isinstance(f.ctype, CType):
+                    if not f.required:
+                        resolved = CType(mangle(f.ctype, optional=True))
+                        fields.append(Field(f.name, resolved, required=True))
+                    else:
+                        fields.append(f)
+                else:
+                    prop_loc = d.loc.push(f.name)
+                    resolved = resolve_ctype(f.ctype)
+                    for group, spec in dim_walk(f.ctype):
+                        if not isinstance(group, FixedDims):
+                            emit(make_vla(spec, prop_loc))
+                    if not f.required:
+                        emit(make_maybe(resolved, prop_loc))
+                        emit(make_optional(resolved, prop_loc))
+                        resolved = resolve_ctype(f.ctype, optional=True)
+                        fields.append(Field(f.name, resolved, required=True))
+                    else:
+                        fields.append(Field(f.name, resolved, f.required))
+            emit(CStruct(d.ctype, d.loc, fields))
+        elif isinstance(d, CUnion):
+            emit(d)
+        else:
+            raise NotImplementedError
     return ret
 
 
@@ -121,7 +124,7 @@ def build_tables(
     def resolve_array(ctype: CType, loc: Location) -> Key:
         """Walk dims inner-to-outer, creating/reusing array descriptors."""
         ref: Key | CType = CType(ctype.name)  # bare leaf
-        for group, spec in ctype.dim_walk():
+        for group, spec in dim_walk(ctype):
             kind = ArrayKind.from_group(group)
             entries = (
                 [(ctype, dim.max) for dim in reversed(group.dims)]
@@ -133,7 +136,7 @@ def build_tables(
                     key=Key(Table.ARRAY, len(arrays)),
                     loc=loc,
                     ntoks=0,
-                    ctype=ct,
+                    ctype=resolve_ctype(ct),
                     kind=kind,
                     max=mx,
                     elem=ref,
@@ -164,7 +167,7 @@ def build_tables(
                     key=Key(Table.FIELD, len(fields)),
                     loc=d.loc,
                     ntoks=sum_ntoks(f.ctype),
-                    ctype=f.ctype,
+                    ctype=resolve_ctype(f.ctype, optional=not f.required),
                     name=f.name,
                     name_offset=strings.add(f.name),
                     parent=struct_key,
@@ -189,15 +192,10 @@ def render(*specs: Any, config: RenderConfig) -> None:
     result = flatten_with_resolver(*specs, resolver=config.resolver)
     if result.errors:
         raise ValueError(result.errors)
-    decls = sort_and_extend_decls(result.decls)
 
-    # Build tables from user-defined structs
-    def is_user_struct(d: CDecl) -> bool:
-        return isinstance(d, CStruct) and d.ctype in result.decls
-
-    user_ordered = [d for d in decls if is_user_struct(d)]
-
-    blob, table = build_tables(user_ordered)
+    sorted_user = sort_decls(result.decls)
+    blob, table = build_tables(sorted_user)
+    decls = extend_decls(sorted_user)
 
     env = Environment(
         loader=PackageLoader("jsmn_forge", "lang/jsmn/templates"),
@@ -205,10 +203,10 @@ def render(*specs: Any, config: RenderConfig) -> None:
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    for name, fn in filters(table=table).items():
+    for name, fn in tests().items():
+        env.tests[name] = fn
+    for name, fn in filters(table=table, decls=decls).items():
         env.filters[name] = fn
-    env.tests["struct_decl"] = lambda val: isinstance(val, CStruct)
-    env.tests["union_decl"] = lambda val: isinstance(val, CUnion)
 
     # Render header
     template = env.get_template("header.h.jinja2")

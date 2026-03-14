@@ -23,9 +23,7 @@ A Field with tuple[Variant, ...] implies a tagged union wrapper.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from dataclasses import dataclass
-from functools import reduce
 from typing import TYPE_CHECKING, NamedTuple
 
 from .primitives import Primitive
@@ -129,34 +127,6 @@ class CType(NamedTuple):
             return _PRIMITIVE_MANGLE[Primitive(self.name)]
         except ValueError:
             return None
-
-    def dim_walk(self) -> Iterator[tuple[Dim | FixedDims, CType]]:
-        """Walk dim groups inner-to-outer, yielding accumulated CTypes.
-
-        FixedDims: yields (group, inner) — inner has fixed dims absorbed.
-        VLA dim:   yields (dim, spec)   — spec ready for _make_vla.
-        """
-        inner = CType(self.name)
-        for group in self.dim_groups():
-            if isinstance(group, FixedDims):
-                inner = CType(inner.name, group.dims)
-                yield (group, inner)
-            else:
-                spec = CType(inner.name, (group, *inner.dims))
-                yield (group, spec)
-                inner = CType(spec.mangle())
-
-    def mangle(self, optional: bool = False) -> str:
-        def reducer(acc: str, next: Dim | FixedDims) -> str:
-            if isinstance(next, FixedDims):
-                d = "x".join(str(dim.max) for dim in next.dims)
-                return f"{acc}__d{d}"
-            else:
-                return f"vla__{acc}__n{next.max}"
-
-        base = self.as_primitive() or self.name
-        result = reduce(reducer, self.dim_groups(), base)
-        return f"optional__{result}" if optional else result
 
 
 class Variant(NamedTuple):

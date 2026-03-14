@@ -10,7 +10,15 @@ from .descriptor import (
     Key,
     StructDescriptor,
 )
-from .ir import CType, Dim, Field, FixedDims, Variant
+from .ir import (
+    CDecl,
+    CEnum,
+    CStruct,
+    CType,
+    CUnion,
+    Dim,
+    Variant,
+)
 from .primitives import Primitive
 
 if TYPE_CHECKING:
@@ -42,74 +50,49 @@ _ARRAY_KINDS: dict[ArrayKind, str] = {
 }
 
 
-# ── Stateless filters (header rendering) ─────────────────────────────
+def tests() -> dict[str, Callable[..., Any]]:
+    def is_struct_decl(decl: CDecl) -> bool:
+        return isinstance(decl, CStruct)
 
+    def is_union_decl(decl: CDecl) -> bool:
+        return isinstance(decl, CUnion)
 
-def mangle(ctype: CType | tuple[Variant, ...]) -> str:
-    if not isinstance(ctype, CType):
-        variants = sorted(mangle(v.ctype) for v in ctype)
-        return f"union{len(ctype)}__{'__'.join(variants)}"
-    else:
-        return ctype.mangle()
+    def is_enum_decl(decl: CDecl) -> bool:
+        return isinstance(decl, CEnum)
 
+    def is_union_ctype(ctype: CType | tuple[Variant, ...]) -> bool:
+        return True if not isinstance(ctype, CType) else False
 
-def qualifier(ctype: CType | tuple[Variant, ...]) -> str:
-    if not isinstance(ctype, CType):
-        return "union"
-    elif any(d.min != d.max for d in ctype.dims) or not ctype.is_primitive:
-        return "struct"
-    else:
-        return ""
-
-
-def dimensions(dims: tuple[Dim, ...]) -> str:
-    return "".join(f"[{d.max}]" for d in dims)
-
-
-def _decl(ctype: CType, name: str) -> str:
-    """Render a C field declaration from a CType and field name."""
-    if qual := qualifier(ctype):
-        if (groups := ctype.dim_groups()) and isinstance(groups[-1], FixedDims):
-            leading = groups[-1]
-            n = len(leading.dims)
-            inner = CType(ctype.name, ctype.dims[n:])
-            dims = dimensions(leading.dims)
-            return f"{qualifier(inner)} {mangle(inner)} {name}{dims}"
-        else:
-            return f"{qual} {mangle(ctype)} {name}"
-    else:
-        return f"{ctype.name} {name}{dimensions(ctype.dims)}"
-
-
-def field(f: Field | Variant) -> str:
-    if isinstance(f, Variant):
-        return _decl(f.ctype, f.name)
-    elif not f.required:
-        return f"struct optional__{mangle(f.ctype)} {f.name}"
-    elif not isinstance(f.ctype, CType):
-        return f"union {mangle(f.ctype)} {f.name}"
-    else:
-        return _decl(f.ctype, f.name)
-
-
-# ── Factory ───────────────────────────────────────────────────────────
-
-
-def filters(table: dict[Key, Descriptors]) -> dict[str, Callable[..., Any]]:
-    """Return all template filters (stateless + table-rendering closures)."""
-    result: dict[str, Callable[..., Any]] = {
-        "field": field,
-        "mangle": mangle,
-        "qualifier": qualifier,
-        "dimensions": dimensions,
+    return {
+        "struct_decl": is_struct_decl,
+        "union_decl": is_union_decl,
+        "enum_decl": is_enum_decl,
+        "union_ctype": is_union_ctype,
     }
 
+
+def filters(
+    table: dict[Key, Descriptors],
+    decls: list[CDecl],
+) -> dict[str, Callable[..., Any]]:
+    """Return all template filters (stateless + table-rendering closures)."""
     # ── Build struct index for positional lookups ─────────────────────
     struct_index: dict[str, int] = {
         d.ctype.name: d.key.pos
         for d in table.values()
         if isinstance(d, StructDescriptor)
     }
+
+    cdecl_index = {v.ctype.name: v for v in decls}
+
+    def qualifier(ctype: CType) -> str:
+        qual = cdecl_index.get(ctype.name)
+        if qual is None:
+            return ""
+        elif isinstance(qual, CUnion):
+            return "union"
+        else:
+            return "struct"
 
     def _resolve_ctype(ctype: CType) -> str:
         try:
@@ -122,6 +105,9 @@ def filters(table: dict[Key, Descriptors]) -> dict[str, Callable[..., Any]]:
             return _resolve_ctype(ref)
         return f"RT_ARRAY({ref.pos})"
 
+    def dimensions(dims: tuple[Dim, ...]) -> str:
+        return "".join(f"[{d.max}]" for d in dims)
+
     # ── Table-rendering closures ──────────────────────────────────────
 
     def name_offset(f: FieldDescriptor) -> str:
@@ -131,8 +117,7 @@ def filters(table: dict[Key, Descriptors]) -> dict[str, Callable[..., Any]]:
         parent = table[f.parent]
         base = f"offsetof(struct {parent.ctype.name}, {f.name})"
         if f.optional:
-            wrapper = f"optional__{mangle(f.ctype)}"
-            return f"{base} + offsetof(struct {wrapper}, maybe)"
+            return f"{base} + offsetof(struct {f.ctype.name}, maybe)"
         return base
 
     def present_offset(f: FieldDescriptor) -> str:
@@ -160,7 +145,7 @@ def filters(table: dict[Key, Descriptors]) -> dict[str, Callable[..., Any]]:
         if child.kind in (ArrayKind.FIXED, ArrayKind.STRING):
             return "0"
         # VLA child — stride is the wrapper struct size
-        return f"sizeof(struct {child.ctype.mangle()})"
+        return f"sizeof(struct {child.ctype.name})"
 
     def array_kind(a: ArrayDescriptor) -> str:
         return _ARRAY_KINDS[a.kind]
@@ -189,21 +174,21 @@ def filters(table: dict[Key, Descriptors]) -> dict[str, Callable[..., Any]]:
     def arrays(ds: list[Descriptors]) -> list[ArrayDescriptor]:
         return [d for d in ds if isinstance(d, ArrayDescriptor)]
 
-    result.update(
-        {
-            "comment": comment,
-            "name_offset": name_offset,
-            "value_offset": value_offset,
-            "present_offset": present_offset,
-            "size_expr": size_expr,
-            "type_expr": type_expr,
-            "elem_expr": elem_expr,
-            "elem_size": elem_size,
-            "array_kind": array_kind,
-            "structs": structs,
-            "fields": fields,
-            "arrays": arrays,
-        }
-    )
+    result: dict[str, Callable[..., Any]] = {
+        "dimensions": dimensions,
+        "comment": comment,
+        "name_offset": name_offset,
+        "value_offset": value_offset,
+        "present_offset": present_offset,
+        "size_expr": size_expr,
+        "type_expr": type_expr,
+        "elem_expr": elem_expr,
+        "elem_size": elem_size,
+        "array_kind": array_kind,
+        "structs": structs,
+        "fields": fields,
+        "arrays": arrays,
+        "qualifier": qualifier,
+    }
 
     return result

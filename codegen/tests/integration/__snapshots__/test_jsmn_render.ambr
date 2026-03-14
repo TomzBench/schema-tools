@@ -217,31 +217,31 @@
   ;
   
   static const struct rt_array rt_arrays[] = {
-      /* [0] vla uint32_t max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [0] vla vla__u32__n3 max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
-      /* [1] vla vla__u32__n3 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [1] vla vla__vla__u32__n3__n4 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
-      /* [2] vla vla__vla__u32__n3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [2] vla vla__vla__vla__u32__n3__n4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
-      /* [3] fixed uint32_t max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [3] fixed vla__vla__u32__d3__n4__n5 max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
-      /* [4] vla uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [4] vla vla__u32__d3__n4 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(3) },
-      /* [5] vla vla__u32__d3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [5] vla vla__vla__u32__d3__n4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
-      /* [6] fixed uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [6] fixed vla__vla__u32__n3__d4__n5 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
-      /* [7] vla vla__u32__n3 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [7] vla vla__vla__u32__n3__d4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(6) },
-      /* [8] fixed uint32_t max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [8] fixed vla__u32__d4x3__n5 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 4, 0, RT_ARRAY(3) },
-      /* [9] vla uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [9] vla vla__u32__d4x3__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(8) },
-      /* [10] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [10] fixed vla__vla__u32__n3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
-      /* [11] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [11] fixed vla__u32__d3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
-      /* [12] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
+      /* [12] fixed vla__u32__n3 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(6) },
       /* [13] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(8) },
@@ -293,11 +293,11 @@
   static const struct rt_array rt_arrays[] = {
       /* [0] string char max=33 @ /forge:~1~1test~1render~1v0/components/schemas/child */
       { RT_KIND_STRING, 0, 33, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
-      /* [1] vla uint32_t max=5 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      /* [1] vla vla__u32__n5 max=5 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
       { RT_KIND_VLA, 0, 5, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
-      /* [2] string char max=17 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      /* [2] string vla__char__d17__n4 max=17 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
       { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
-      /* [3] vla char max=4 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
+      /* [3] vla vla__char__d17__n4 max=4 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
       { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(2) },
   };
   

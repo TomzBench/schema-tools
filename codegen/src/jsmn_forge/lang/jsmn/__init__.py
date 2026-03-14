@@ -1,16 +1,23 @@
-from .filters import field, mangle
 from .ir import CStruct, CType, Dim, Field, Variant
-from .render import RenderConfig, render, sort_and_extend_decls
+from .mangle import mangle
+from .render import (
+    RenderConfig,
+    extend_decls,
+    render,
+    resolve_ctype,
+    sort_decls,
+)
 
 __all__ = [
     "CStruct",
     "CType",
     "Dim",
     "Field",
-    "Variant",
-    "field",
-    "mangle",
     "RenderConfig",
+    "Variant",
+    "extend_decls",
+    "mangle",
     "render",
-    "sort_and_extend_decls",
+    "resolve_ctype",
+    "sort_decls",
 ]

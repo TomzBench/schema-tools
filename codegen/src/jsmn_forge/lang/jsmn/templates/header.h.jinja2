@@ -7,13 +7,13 @@
 {% if decl is struct_decl %}
 struct {{ decl.ctype.name }} {
 {% for f in decl.fields %}
-    {{ f | field }};
+    {{ (f.ctype | qualifier ~ ' ' ~ f.ctype.name) | trim }} {{ f.name }}{{ f.ctype.dims | dimensions }};
 {% endfor %}
 };
 {% elif decl is union_decl %}
 union {{ decl.ctype.name }} {
 {% for v in decl.variants %}
-    {{ v | field }};
+    {{ (v.ctype | qualifier ~ ' ' ~ v.ctype.name) | trim }} {{ v.name }}{{ v.ctype.dims | dimensions }};
 {% endfor %}
 };
 {% endif %}
