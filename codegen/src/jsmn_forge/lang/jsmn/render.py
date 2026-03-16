@@ -186,6 +186,7 @@ class RenderConfig:
     output_source: TextIO
     guard: str = "__JSMN_FORGE_H__"
     header_name: str = "jsmn_forge.h"
+    prefix: str = "schema_"
 
 
 def render(*specs: Any, config: RenderConfig) -> None:
@@ -203,22 +204,27 @@ def render(*specs: Any, config: RenderConfig) -> None:
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    for name, fn in tests().items():
+    for name, fn in tests(sorted_user).items():
         env.tests[name] = fn
     for name, fn in filters(table=table, decls=decls).items():
         env.filters[name] = fn
 
     # Render header
     template = env.get_template("header.h.jinja2")
-    config.output_header.write(template.render(decls=decls, guard=config.guard))
+
+    oh = template.render(
+        decls=decls,
+        guard=config.guard,
+        prefix=config.prefix,
+    )
+    config.output_header.write(oh)
 
     # Render tables source
     descriptors = sorted(table.values(), key=lambda d: d.key.pos)
     tables_template = env.get_template("tables.c.jinja2")
-    config.output_source.write(
-        tables_template.render(
-            header=config.header_name,
-            blob=blob,
-            descriptors=descriptors,
-        )
+    os = tables_template.render(
+        header=config.header_name,
+        blob=blob,
+        descriptors=descriptors,
     )
+    config.output_source.write(os)

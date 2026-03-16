@@ -21,6 +21,25 @@
       char p_str[17];
   };
   
+  int32_t schema_decode_every_type_tok(
+      struct every_type *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t schema_decode_every_type(
+      struct every_type *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t schema_encode_every_type(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct every_type *src);
+  
+  uint32_t schema_len_every_type(const struct every_type *val);
+  
   #endif /* __JSMN_FORGE_H__ */
   
   '''
@@ -85,6 +104,25 @@
       uint32_t d_fff[5][4][3];
   };
   
+  int32_t schema_decode_vla_combos_tok(
+      struct vla_combos *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t schema_decode_vla_combos(
+      struct vla_combos *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t schema_encode_vla_combos(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct vla_combos *src);
+  
+  uint32_t schema_len_vla_combos(const struct vla_combos *val);
+  
   #endif /* __JSMN_FORGE_H__ */
   
   '''
@@ -132,6 +170,63 @@
   struct sibling {
       struct optional__u32 count;
   };
+  
+  int32_t schema_decode_child_tok(
+      struct child *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t schema_decode_child(
+      struct child *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t schema_encode_child(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct child *src);
+  
+  uint32_t schema_len_child(const struct child *val);
+  
+  int32_t schema_decode_parent_tok(
+      struct parent *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t schema_decode_parent(
+      struct parent *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t schema_encode_parent(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct parent *src);
+  
+  uint32_t schema_len_parent(const struct parent *val);
+  
+  int32_t schema_decode_sibling_tok(
+      struct sibling *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t schema_decode_sibling(
+      struct sibling *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t schema_encode_sibling(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct sibling *src);
+  
+  uint32_t schema_len_sibling(const struct sibling *val);
   
   #endif /* __JSMN_FORGE_H__ */
   

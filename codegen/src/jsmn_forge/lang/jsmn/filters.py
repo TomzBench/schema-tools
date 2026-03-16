@@ -50,7 +50,9 @@ _ARRAY_KINDS: dict[ArrayKind, str] = {
 }
 
 
-def tests() -> dict[str, Callable[..., Any]]:
+def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
+    cdecl_index = {v.ctype.name: v for v in user_decls}
+
     def is_struct_decl(decl: CDecl) -> bool:
         return isinstance(decl, CStruct)
 
@@ -60,13 +62,18 @@ def tests() -> dict[str, Callable[..., Any]]:
     def is_enum_decl(decl: CDecl) -> bool:
         return isinstance(decl, CEnum)
 
+    def is_user_decl(decl: CDecl | CType) -> bool:
+        t = decl.name if isinstance(decl, CType) else decl.ctype.name
+        return t in cdecl_index
+
     def is_union_ctype(ctype: CType | tuple[Variant, ...]) -> bool:
-        return True if not isinstance(ctype, CType) else False
+        return not isinstance(ctype, CType)
 
     return {
         "struct_decl": is_struct_decl,
         "union_decl": is_union_decl,
         "enum_decl": is_enum_decl,
+        "user_decl": is_user_decl,
         "union_ctype": is_union_ctype,
     }
 
