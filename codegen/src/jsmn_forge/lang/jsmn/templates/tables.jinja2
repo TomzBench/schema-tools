@@ -1,0 +1,45 @@
+{# --- Render the strings blob --- #}
+{% macro strings(name, strings) -%}
+static const char {{ name }}[] =
+{% for offset, name in strings %}
+    "{{ name }}\0" /* {{ offset }} */
+{% endfor -%}
+;
+{%- endmacro %}
+
+{# --- Render the array descriptors --- #}
+{% macro arrays(name, arrays) -%}
+static const struct rt_array {{ name }}[] = {
+{% for a in arrays %}
+    /* [{{ loop.index0 }}] {{ a | comment }} */
+    { {{ a | array_kind }}, 0, {{ a.max }}, {{ a | elem_size }}, {{ a | elem_expr }} },
+{% endfor -%}
+};
+{%- endmacro %}
+
+{# --- Render the field descriptors --- #}
+{% macro fields(name, fields) -%}
+static const struct rt_field {{ name }}[] = {
+{% for f in fields %}
+    /* [{{ loop.index0 }}] {{ f | comment }} */
+    { {{ f | name_offset }}, {{ f | value_offset }}, {{ f | present_offset }}, {{ f | type_expr }} },
+{% endfor -%}
+};
+{%- endmacro %}
+
+{# --- Render the structs descriptors --- #}
+{% macro structs(name, structs) -%}
+static const struct rt_struct {{ name }}[] = {
+{% for s in structs %}
+    /* [{{ loop.index0 }}] {{ s | comment }} */
+    { {{ s.nfields }}, 0, {{ s | size_expr }}, {{ s.ntoks }}, {{ s.field0 }} },
+{% endfor -%}
+};
+{%- endmacro %}
+
+{# --- Render the index macros --- #}
+{% macro keys(name, descriptors) %}
+{% for d in descriptors %}
+#define {{ name | upper }}{{ d.ctype.name | upper }}_KEY {{ loop.index0 }}
+{% endfor -%}
+{%- endmacro %}

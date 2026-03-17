@@ -1,0 +1,50 @@
+openapi: "3.1.0"
+$id: "forge://e2e/optionals/v0"
+info:
+  title: Optional fields e2e test
+  version: "0.1.0"
+components:
+  schemas:
+    # Leaf struct used as optional nested field
+    detail:
+      type: object
+      x-jsmn-forge-as: detail
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          format: uint16
+        message:
+          type: string
+          maxLength: 64
+
+    # Mix of required and optional fields
+    record:
+      type: object
+      x-jsmn-forge-as: record
+      required: [id]
+      properties:
+        # Required baseline
+        id:
+          type: integer
+          format: uint32
+
+        # Optional primitive
+        count:
+          type: integer
+          format: uint32
+
+        # Optional string
+        label:
+          type: string
+          maxLength: 24
+
+        # Optional nested object
+        detail:
+          $ref: "forge://e2e/optionals/v0#/components/schemas/detail"
+
+        # Optional VLA
+        values:
+          type: array
+          maxItems: 6
+          items: { type: integer, format: uint32 }

@@ -5,6 +5,35 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* ── Error codes ───────────────────────────────────────────────────── */
+/*                                                                       */
+/* Negative = error, positive = success (byte/token count).              */
+/* -1..-3 mirror jsmn; -16 and below are runtime errors.                 */
+
+// clang-format off
+enum rt_err {
+    /* jsmn pass-through (keep in sync with enum jsmnerr) */
+    RT_ERR_NOMEM       = -1,   /* not enough tokens                     */
+    RT_ERR_JSON        = -2,   /* invalid JSON                          */
+    RT_ERR_PARTIAL     = -3,   /* truncated input                       */
+
+    /* type / structure */
+    RT_ERR_TYPE        = -16,  /* token type != expected type            */
+    RT_ERR_REQUIRED    = -17,  /* required field missing                 */
+    RT_ERR_UNKNOWN_KEY = -18,  /* unrecognised object key (strict mode)  */
+
+    /* value constraints */
+    RT_ERR_OVERFLOW    = -32,  /* integer exceeds target range (above)   */
+    RT_ERR_UNDERFLOW   = -33,  /* integer exceeds target range (below)   */
+    RT_ERR_STR_LENGTH  = -34,  /* string exceeds maxLength               */
+    RT_ERR_ARRAY_COUNT = -35,  /* array items exceed capacity            */
+    RT_ERR_FLOAT       = -36,  /* not-finite or out-of-range float       */
+
+    /* encode */
+    RT_ERR_BUFFER      = -48,  /* output buffer too small                */
+};
+// clang-format on
+
 /* ── Tagged type handle ─────────────────────────────────────────────── */
 /*                                                                       */
 /* uint16_t, 2-bit tag in low bits:                                      */
@@ -14,15 +43,17 @@
 
 typedef uint16_t rt_type_t;
 
+// clang-format off
 #define RT_PRIM(id)     ((rt_type_t)(((id) << 1) | 1u))
 #define RT_STRUCT(i)    ((rt_type_t)((i) << 2))
 #define RT_ARRAY(i)     ((rt_type_t)(((i) << 2) | 2u))
 
 #define RT_IS_PRIM(t)   ((t) & 1u)
-#define RT_IS_STRUCT(t)  (((t) & 3u) == 0)
-#define RT_IS_ARRAY(t)   (((t) & 3u) == 2)
-#define RT_PRIM_ID(t)    ((t) >> 1)
-#define RT_IDX(t)        ((t) >> 2)
+#define RT_IS_STRUCT(t) (((t) & 3u) == 0)
+#define RT_IS_ARRAY(t)  (((t) & 3u) == 2)
+#define RT_PRIM_ID(t)   ((t) >> 1)
+#define RT_IDX(t)       ((t) >> 2)
+// clang-format on
 
 /* ── Scalar type IDs (fit in 7 bits) ───────────────────────────────── */
 
@@ -49,26 +80,33 @@ typedef uint16_t rt_type_t;
 /* ── Table entry types (8 bytes each, zero pointers) ───────────────── */
 
 struct rt_field {
-    uint16_t  off_name;        // byte offset into rt_names[]
-    uint16_t  off_value;       // offsetof to value
-    uint16_t  off_present;     // offsetof to bool present, 0xFFFF = required
-    rt_type_t type;            // prim / struct idx / array idx
+    uint16_t  off_name;    // byte offset into rt_names[]
+    uint16_t  off_value;   // offsetof to value
+    uint16_t  off_present; // offsetof to bool present, 0xFFFF = required
+    rt_type_t type;        // prim / struct idx / array idx
 };
 
 struct rt_array {
-    uint8_t   kind;            // RT_KIND_STRING / RT_KIND_FIXED / RT_KIND_VLA
+    uint8_t   kind; // RT_KIND_STRING / RT_KIND_FIXED / RT_KIND_VLA
     uint8_t   pad;
-    uint16_t  max;             // capacity
-    uint16_t  elem_size;       // stride in bytes
-    rt_type_t elem;            // element type (recursive)
+    uint16_t  max;       // capacity
+    uint16_t  elem_size; // stride in bytes
+    rt_type_t elem;      // element type (recursive)
 };
 
 struct rt_struct {
-    uint8_t   nfields;
-    uint8_t   pad;
-    uint16_t  size;            // sizeof(struct T)
-    uint16_t  ntoks;           // max jsmn tokens needed
-    uint16_t  field0;          // start index into rt_fields[]
+    uint8_t  nfields;
+    uint8_t  pad;
+    uint16_t size;   // sizeof(struct T)
+    uint16_t ntoks;  // max jsmn tokens needed
+    uint16_t field0; // start index into rt_fields[]
+};
+
+struct rt_schemas {
+    const char             *names;   // field name string blob
+    const struct rt_array  *arrays;  // array descriptors
+    const struct rt_field  *fields;  // field descriptors
+    const struct rt_struct *structs; // struct descriptors
 };
 
 #ifdef __cplusplus
@@ -76,12 +114,20 @@ extern "C" {
 #endif
 
 int
-rt_decode(void *dst,
-          const struct rt_struct *desc,
-          const char *src,
-          uint32_t slen,
-          jsmntok_t *toks,
-          uint32_t ntoks);
+rt_decode(const struct rt_schemas *schema,
+          jsmntok_t               *toks,
+          uint32_t                 ntoks,
+          void                    *dst,
+          int                      struct_idx,
+          const char              *src,
+          uint32_t                 slen);
+
+int
+rt_encode_struct(const struct rt_schemas *schemas,
+                 uint8_t                 *dst,
+                 uint32_t                 dlen,
+                 const void              *src,
+                 int                      idx);
 
 #ifdef __cplusplus
 }

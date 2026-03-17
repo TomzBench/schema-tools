@@ -1,0 +1,68 @@
+{# --- Prototype declarations --- #}
+{% macro decode_prototype(prefix, name) %}
+int32_t {{ prefix }}decode_{{ name }}_tok(
+    struct {{ name }} *dst,
+    const char *src,
+    uint32_t slen,
+    jsmntok_t *toks,
+    uint32_t ntoks);
+
+int32_t {{ prefix }}decode_{{ name }}(
+    struct {{ name }} *dst,
+    const char *src,
+    uint32_t slen);
+{%- endmacro %}
+
+{% macro encode_prototype(prefix, name) %}
+int32_t {{ prefix }}encode_{{ name }}(
+    uint8_t *dst,
+    uint32_t dlen,
+    const struct {{ name }} *src);
+{%- endmacro %}
+
+{% macro encode_len(prefix) %}
+uint32_t {{ prefix }}encode_len_prototype(int idx, struct rt_schemas *schemas);
+{%- endmacro %}
+
+{# --- Implementation --- #}
+{% macro decode(prefix, name, ntoks, struct_idx, schemas) %}
+int32_t
+{{ prefix }}decode_{{ name }}_tok(
+    struct {{ name }} *dst,
+    const char *src,
+    uint32_t slen,
+    jsmntok_t *toks,
+    uint32_t ntoks)
+{
+    return rt_decode(&{{ schemas }}, toks, ntoks, dst, {{ struct_idx }}, src, slen);
+}
+
+int32_t
+{{ prefix }}decode_{{ name }}(
+    struct {{ name }} *dst,
+    const char *src,
+    uint32_t slen)
+{
+    jsmntok_t toks[{{ ntoks }}];
+    return {{ prefix }}decode_{{ name }}_tok(dst, src, slen, toks, {{ ntoks }});
+}
+{%- endmacro %}
+
+{% macro encode(prefix, name, idx, schemas) %}
+int32_t
+{{ prefix }}encode_{{ name }}(
+    uint8_t *dst,
+    uint32_t dlen,
+    const struct {{ name }} *src)
+{
+	return rt_encode_struct(&{{ schemas }}, dst, dlen, src, {{ idx }});
+}
+{%- endmacro %}
+
+{% macro encode_len(prefix, schemas) %}
+uint32_t
+{{ prefix }}encode_len(int idx, struct rt_schemas *schemas)
+{
+	return schemas->structs[idx].encode_len;
+}
+{%- endmacro %}

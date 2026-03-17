@@ -28,7 +28,15 @@ from typing import NamedTuple
 
 from jsmn_forge.node import Location
 
-from .ir import CStruct, CType, Dim, Field, FixedDims, StringDim
+from .ir import CArray, CStruct, CType, CUnion, Dim, Field, FixedDims, StringDim
+
+
+class EscapeMode(Enum):
+    """Char multiplier for worst-case encode buffer calculation."""
+
+    NONE = 1  # pass-through, no escaping
+    BASIC = 2  # escape " \ and control chars
+    UNICODE = 6  # \uXXXX for everything non-ASCII
 
 
 class Table(Enum):
@@ -63,6 +71,7 @@ class Descriptor:
     key: Key
     loc: Location
     ntoks: int
+    encode_len: int
     ctype: CType
 
 
@@ -156,15 +165,95 @@ def sum_ntoks_with_cache() -> Callable[[CStruct | CType], int]:
             acc += max(_weight(v.ctype) for v in field.ctype)
             return acc
 
-    def sum_ntoks(s: CStruct | CType) -> int:
+    def sum_ntoks(s: CStruct | CArray | CUnion | CType) -> int:
         if isinstance(s, CStruct):
             ntoks = reduce(_accumulate_ntoks, s.fields, 1 + len(s.fields))
+            memo[s.ctype.name] = ntoks
+            return ntoks
+        elif isinstance(s, CArray):
+            ntoks = 1 + sum_ntoks(s.elem) * s.max  # [ ] tok + N * elem
+            memo[s.ctype.name] = ntoks
+            return ntoks
+        elif isinstance(s, CUnion):
+            ntoks = max(sum_ntoks(v.ctype) for v in s.variants)
             memo[s.ctype.name] = ntoks
             return ntoks
         else:
             return memo[s.name] if s.name in memo else _weight(s)
 
     return sum_ntoks
+
+
+def sum_encode_len_with_cache(
+    escape: EscapeMode = EscapeMode.NONE,
+) -> Callable[[CStruct | CType], int]:
+    memo: dict[str, int] = {}
+
+    # Worst-case JSON text length per primitive value
+    # fmt: off
+    _PRIMITIVE_LEN: dict[str, int] = {
+        "bool": 5,            # false
+        "char": escape.value, # See: EscapeMode
+        "uint8_t": 3,         # 255
+        "int8_t": 4,          # -128
+        "uint16_t": 5,        # 65535
+        "int16_t": 6,         # -32768
+        "uint32_t": 10,       # 4294967295
+        "int32_t": 11,        # -2147483648
+        "uint64_t": 20,       # 18446744073709551615
+        "int64_t": 20,        # -9223372036854775808
+        "float": 13,          # -%g worst case (C99+)
+        "double": 24,         # -%.17g worst case (C99+)
+    }
+    # fmt: on
+
+    def _weight(ctype: CType) -> int:
+        if ctype.is_string:
+            # "content" = 2 quotes + (buf - 1) * char_weight
+            # buf includes null terminator, so max content = buf - 1
+            base = 2 + (ctype.dims[-1].max - 1) * _PRIMITIVE_LEN["char"]
+            dims = ctype.dims[:-1]
+        elif ctype.is_primitive:
+            base = _PRIMITIVE_LEN[ctype.name]
+            dims = ctype.dims
+        else:
+            base = memo[ctype.name]
+            dims = ctype.dims
+        # [elem,elem,...] = 2 + N*elem + (N-1) commas
+        for dim in reversed(dims):
+            base = 2 + dim.max * base + max(0, dim.max - 1)
+        return base
+
+    def _accumulate(acc: int, field: Field) -> int:
+        # "name":val = len(name) + 2 quotes + 1 colon + val
+        if isinstance(field.ctype, CType):
+            return acc + len(field.name) + 3 + _weight(field.ctype)
+        else:
+            acc += (
+                len(field.name) + 3 + max(_weight(v.ctype) for v in field.ctype)
+            )
+            return acc
+
+    def sum_encode_len(s: CStruct | CArray | CUnion | CType) -> int:
+        if isinstance(s, CStruct):
+            # {field,field,...} = 2 braces + (N-1) commas
+            commas = max(0, len(s.fields) - 1)
+            nbytes = reduce(_accumulate, s.fields, 2 + commas)
+            memo[s.ctype.name] = nbytes
+            return nbytes
+        elif isinstance(s, CArray):
+            # [elem,elem,...] = 2 brackets + N*elem + (N-1) commas
+            nbytes = 2 + s.max * sum_encode_len(s.elem) + max(0, s.max - 1)
+            memo[s.ctype.name] = nbytes
+            return nbytes
+        elif isinstance(s, CUnion):
+            nbytes = max(sum_encode_len(v.ctype) for v in s.variants)
+            memo[s.ctype.name] = nbytes
+            return nbytes
+        else:
+            return memo[s.name] if s.name in memo else _weight(s)
+
+    return sum_encode_len
 
 
 def add_array_with_cache() -> tuple[

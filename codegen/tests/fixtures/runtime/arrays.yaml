@@ -1,0 +1,151 @@
+openapi: "3.1.0"
+$id: "forge://e2e/arrays/v0"
+info:
+  title: Array dimension e2e test
+  version: "0.1.0"
+components:
+  schemas:
+    # Leaf struct for array-of-objects tests
+    point:
+      type: object
+      x-jsmn-forge-as: point
+      required: [x, y]
+      properties:
+        x: { type: integer, format: int32 }
+        y: { type: integer, format: int32 }
+
+    # All 8 three-deep VLA/fixed combos of u32
+    # Dims: inner=3, middle=4, outer=5
+    array_combos:
+      type: object
+      x-jsmn-forge-as: array_combos
+      required: [d_vvv, d_vvf, d_vfv, d_vff, d_fvv, d_fvf, d_ffv, d_fff]
+      properties:
+        # vvv: vla(5) -> vla(4) -> vla(3) -> u32
+        d_vvv:
+          type: array
+          maxItems: 5
+          items:
+            type: array
+            maxItems: 4
+            items:
+              type: array
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # vvf: vla(5) -> vla(4) -> fixed(3) -> u32
+        d_vvf:
+          type: array
+          maxItems: 5
+          items:
+            type: array
+            maxItems: 4
+            items:
+              type: array
+              minItems: 3
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # vfv: vla(5) -> fixed(4) -> vla(3) -> u32
+        d_vfv:
+          type: array
+          maxItems: 5
+          items:
+            type: array
+            minItems: 4
+            maxItems: 4
+            items:
+              type: array
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # vff: vla(5) -> fixed(4) -> fixed(3) -> u32
+        d_vff:
+          type: array
+          maxItems: 5
+          items:
+            type: array
+            minItems: 4
+            maxItems: 4
+            items:
+              type: array
+              minItems: 3
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # fvv: fixed(5) -> vla(4) -> vla(3) -> u32
+        d_fvv:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: array
+            maxItems: 4
+            items:
+              type: array
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # fvf: fixed(5) -> vla(4) -> fixed(3) -> u32
+        d_fvf:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: array
+            maxItems: 4
+            items:
+              type: array
+              minItems: 3
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # ffv: fixed(5) -> fixed(4) -> vla(3) -> u32
+        d_ffv:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: array
+            minItems: 4
+            maxItems: 4
+            items:
+              type: array
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+        # fff: fixed(5) -> fixed(4) -> fixed(3) -> u32
+        d_fff:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: array
+            minItems: 4
+            maxItems: 4
+            items:
+              type: array
+              minItems: 3
+              maxItems: 3
+              items: { type: integer, format: uint32 }
+
+    # Arrays of objects — fixed and VLA
+    array_of_objects:
+      type: object
+      x-jsmn-forge-as: array_of_objects
+      required: [fixed_points, vla_points]
+      properties:
+        # Fixed array of structs
+        fixed_points:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            $ref: "forge://e2e/arrays/v0#/components/schemas/point"
+
+        # VLA of structs
+        vla_points:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "forge://e2e/arrays/v0#/components/schemas/point"

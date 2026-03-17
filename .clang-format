@@ -8,3 +8,7 @@ BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
 InsertBraces: true
 IndentWidth: 4
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true

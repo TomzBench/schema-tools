@@ -1,10 +1,1348 @@
 # serializer version: 1
-# name: test_render_snapshot[jsmn-every-type]
+# name: test_renderer_hoist_includes
   '''
-  #ifndef __JSMN_FORGE_H__
-  #define __JSMN_FORGE_H__
+  #include <stdbool.h>
+  #include <stddef.h>
+  #include <stdint.h>
+  #include <string.h>
+  
+  void foo(void);
+  void bar(void);
+  
+  '''
+# ---
+# name: test_renderer_runtime_snapshot
+  '''
+  /*
+   * MIT License
+   *
+   * Copyright (c) 2010 Serge Zaitsev
+   *
+   * Permission is hereby granted, free of charge, to any person obtaining a copy
+   * of this software and associated documentation files (the "Software"), to deal
+   * in the Software without restriction, including without limitation the rights
+   * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   * copies of the Software, and to permit persons to whom the Software is
+   * furnished to do so, subject to the following conditions:
+   *
+   * The above copyright notice and this permission notice shall be included in
+   * all copies or substantial portions of the Software.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   * SOFTWARE.
+   */
+  #ifndef JSMN_H
+  #define JSMN_H
+  
+  #include <stddef.h>
+  
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  
+  #ifdef JSMN_STATIC
+  #define JSMN_API static
+  #else
+  #define JSMN_API extern
+  #endif
+  
+  /**
+   * JSON type identifier. Basic types are:
+   * 	o Object
+   * 	o Array
+   * 	o String
+   * 	o Other primitive: number, boolean (true/false) or null
+   */
+  typedef enum {
+    JSMN_UNDEFINED = 0,
+    JSMN_OBJECT = 1 << 0,
+    JSMN_ARRAY = 1 << 1,
+    JSMN_STRING = 1 << 2,
+    JSMN_PRIMITIVE = 1 << 3
+  } jsmntype_t;
+  
+  enum jsmnerr {
+    /* Not enough tokens were provided */
+    JSMN_ERROR_NOMEM = -1,
+    /* Invalid character inside JSON string */
+    JSMN_ERROR_INVAL = -2,
+    /* The string is not a full JSON packet, more bytes expected */
+    JSMN_ERROR_PART = -3
+  };
+  
+  /**
+   * JSON token description.
+   * type		type (object, array, string etc.)
+   * start	start position in JSON data string
+   * end		end position in JSON data string
+   */
+  typedef struct jsmntok {
+    jsmntype_t type;
+    int start;
+    int end;
+    int size;
+  #ifdef JSMN_PARENT_LINKS
+    int parent;
+  #endif
+  } jsmntok_t;
+  
+  /**
+   * JSON parser. Contains an array of token blocks available. Also stores
+   * the string being parsed now and current position in that string.
+   */
+  typedef struct jsmn_parser {
+    unsigned int pos;     /* offset in the JSON string */
+    unsigned int toknext; /* next token to allocate */
+    int toksuper;         /* superior token node, e.g. parent object or array */
+  } jsmn_parser;
+  
+  /**
+   * Create JSON parser over an array of tokens
+   */
+  JSMN_API void jsmn_init(jsmn_parser *parser);
+  
+  /**
+   * Run JSON parser. It parses a JSON data string into and array of tokens, each
+   * describing
+   * a single JSON object.
+   */
+  JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
+                          jsmntok_t *tokens, const unsigned int num_tokens);
+  
+  #ifndef JSMN_HEADER
+  /**
+   * Allocates a fresh unused token from the token pool.
+   */
+  static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens,
+                                     const size_t num_tokens) {
+    jsmntok_t *tok;
+    if (parser->toknext >= num_tokens) {
+      return NULL;
+    }
+    tok = &tokens[parser->toknext++];
+    tok->start = tok->end = -1;
+    tok->size = 0;
+  #ifdef JSMN_PARENT_LINKS
+    tok->parent = -1;
+  #endif
+    return tok;
+  }
+  
+  /**
+   * Fills token type and boundaries.
+   */
+  static void jsmn_fill_token(jsmntok_t *token, const jsmntype_t type,
+                              const int start, const int end) {
+    token->type = type;
+    token->start = start;
+    token->end = end;
+    token->size = 0;
+  }
+  
+  /**
+   * Fills next available token with JSON primitive.
+   */
+  static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
+                                  const size_t len, jsmntok_t *tokens,
+                                  const size_t num_tokens) {
+    jsmntok_t *token;
+    int start;
+  
+    start = parser->pos;
+  
+    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
+      switch (js[parser->pos]) {
+  #ifndef JSMN_STRICT
+      /* In strict mode primitive must be followed by "," or "}" or "]" */
+      case ':':
+  #endif
+      case '\t':
+      case '\r':
+      case '\n':
+      case ' ':
+      case ',':
+      case ']':
+      case '}':
+        goto found;
+      default:
+                     /* to quiet a warning from gcc*/
+        break;
+      }
+      if (js[parser->pos] < 32 || js[parser->pos] >= 127) {
+        parser->pos = start;
+        return JSMN_ERROR_INVAL;
+      }
+    }
+  #ifdef JSMN_STRICT
+    /* In strict mode primitive must be followed by a comma/object/array */
+    parser->pos = start;
+    return JSMN_ERROR_PART;
+  #endif
+  
+  found:
+    if (tokens == NULL) {
+      parser->pos--;
+      return 0;
+    }
+    token = jsmn_alloc_token(parser, tokens, num_tokens);
+    if (token == NULL) {
+      parser->pos = start;
+      return JSMN_ERROR_NOMEM;
+    }
+    jsmn_fill_token(token, JSMN_PRIMITIVE, start, parser->pos);
+  #ifdef JSMN_PARENT_LINKS
+    token->parent = parser->toksuper;
+  #endif
+    parser->pos--;
+    return 0;
+  }
+  
+  /**
+   * Fills next token with JSON string.
+   */
+  static int jsmn_parse_string(jsmn_parser *parser, const char *js,
+                               const size_t len, jsmntok_t *tokens,
+                               const size_t num_tokens) {
+    jsmntok_t *token;
+  
+    int start = parser->pos;
+    
+    /* Skip starting quote */
+    parser->pos++;
+    
+    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
+      char c = js[parser->pos];
+  
+      /* Quote: end of string */
+      if (c == '\"') {
+        if (tokens == NULL) {
+          return 0;
+        }
+        token = jsmn_alloc_token(parser, tokens, num_tokens);
+        if (token == NULL) {
+          parser->pos = start;
+          return JSMN_ERROR_NOMEM;
+        }
+        jsmn_fill_token(token, JSMN_STRING, start + 1, parser->pos);
+  #ifdef JSMN_PARENT_LINKS
+        token->parent = parser->toksuper;
+  #endif
+        return 0;
+      }
+  
+      /* Backslash: Quoted symbol expected */
+      if (c == '\\' && parser->pos + 1 < len) {
+        int i;
+        parser->pos++;
+        switch (js[parser->pos]) {
+        /* Allowed escaped symbols */
+        case '\"':
+        case '/':
+        case '\\':
+        case 'b':
+        case 'f':
+        case 'r':
+        case 'n':
+        case 't':
+          break;
+        /* Allows escaped symbol \uXXXX */
+        case 'u':
+          parser->pos++;
+          for (i = 0; i < 4 && parser->pos < len && js[parser->pos] != '\0';
+               i++) {
+            /* If it isn't a hex character we have an error */
+            if (!((js[parser->pos] >= 48 && js[parser->pos] <= 57) ||   /* 0-9 */
+                  (js[parser->pos] >= 65 && js[parser->pos] <= 70) ||   /* A-F */
+                  (js[parser->pos] >= 97 && js[parser->pos] <= 102))) { /* a-f */
+              parser->pos = start;
+              return JSMN_ERROR_INVAL;
+            }
+            parser->pos++;
+          }
+          parser->pos--;
+          break;
+        /* Unexpected symbol */
+        default:
+          parser->pos = start;
+          return JSMN_ERROR_INVAL;
+        }
+      }
+    }
+    parser->pos = start;
+    return JSMN_ERROR_PART;
+  }
+  
+  /**
+   * Parse JSON string and fill tokens.
+   */
+  JSMN_API int jsmn_parse(jsmn_parser *parser, const char *js, const size_t len,
+                          jsmntok_t *tokens, const unsigned int num_tokens) {
+    int r;
+    int i;
+    jsmntok_t *token;
+    int count = parser->toknext;
+  
+    for (; parser->pos < len && js[parser->pos] != '\0'; parser->pos++) {
+      char c;
+      jsmntype_t type;
+  
+      c = js[parser->pos];
+      switch (c) {
+      case '{':
+      case '[':
+        count++;
+        if (tokens == NULL) {
+          break;
+        }
+        token = jsmn_alloc_token(parser, tokens, num_tokens);
+        if (token == NULL) {
+          return JSMN_ERROR_NOMEM;
+        }
+        if (parser->toksuper != -1) {
+          jsmntok_t *t = &tokens[parser->toksuper];
+  #ifdef JSMN_STRICT
+          /* In strict mode an object or array can't become a key */
+          if (t->type == JSMN_OBJECT) {
+            return JSMN_ERROR_INVAL;
+          }
+  #endif
+          t->size++;
+  #ifdef JSMN_PARENT_LINKS
+          token->parent = parser->toksuper;
+  #endif
+        }
+        token->type = (c == '{' ? JSMN_OBJECT : JSMN_ARRAY);
+        token->start = parser->pos;
+        parser->toksuper = parser->toknext - 1;
+        break;
+      case '}':
+      case ']':
+        if (tokens == NULL) {
+          break;
+        }
+        type = (c == '}' ? JSMN_OBJECT : JSMN_ARRAY);
+  #ifdef JSMN_PARENT_LINKS
+        if (parser->toknext < 1) {
+          return JSMN_ERROR_INVAL;
+        }
+        token = &tokens[parser->toknext - 1];
+        for (;;) {
+          if (token->start != -1 && token->end == -1) {
+            if (token->type != type) {
+              return JSMN_ERROR_INVAL;
+            }
+            token->end = parser->pos + 1;
+            parser->toksuper = token->parent;
+            break;
+          }
+          if (token->parent == -1) {
+            if (token->type != type || parser->toksuper == -1) {
+              return JSMN_ERROR_INVAL;
+            }
+            break;
+          }
+          token = &tokens[token->parent];
+        }
+  #else
+        for (i = parser->toknext - 1; i >= 0; i--) {
+          token = &tokens[i];
+          if (token->start != -1 && token->end == -1) {
+            if (token->type != type) {
+              return JSMN_ERROR_INVAL;
+            }
+            parser->toksuper = -1;
+            token->end = parser->pos + 1;
+            break;
+          }
+        }
+        /* Error if unmatched closing bracket */
+        if (i == -1) {
+          return JSMN_ERROR_INVAL;
+        }
+        for (; i >= 0; i--) {
+          token = &tokens[i];
+          if (token->start != -1 && token->end == -1) {
+            parser->toksuper = i;
+            break;
+          }
+        }
+  #endif
+        break;
+      case '\"':
+        r = jsmn_parse_string(parser, js, len, tokens, num_tokens);
+        if (r < 0) {
+          return r;
+        }
+        count++;
+        if (parser->toksuper != -1 && tokens != NULL) {
+          tokens[parser->toksuper].size++;
+        }
+        break;
+      case '\t':
+      case '\r':
+      case '\n':
+      case ' ':
+        break;
+      case ':':
+        parser->toksuper = parser->toknext - 1;
+        break;
+      case ',':
+        if (tokens != NULL && parser->toksuper != -1 &&
+            tokens[parser->toksuper].type != JSMN_ARRAY &&
+            tokens[parser->toksuper].type != JSMN_OBJECT) {
+  #ifdef JSMN_PARENT_LINKS
+          parser->toksuper = tokens[parser->toksuper].parent;
+  #else
+          for (i = parser->toknext - 1; i >= 0; i--) {
+            if (tokens[i].type == JSMN_ARRAY || tokens[i].type == JSMN_OBJECT) {
+              if (tokens[i].start != -1 && tokens[i].end == -1) {
+                parser->toksuper = i;
+                break;
+              }
+            }
+          }
+  #endif
+        }
+        break;
+  #ifdef JSMN_STRICT
+      /* In strict mode primitives are: numbers and booleans */
+      case '-':
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case 't':
+      case 'f':
+      case 'n':
+        /* And they must not be keys of the object */
+        if (tokens != NULL && parser->toksuper != -1) {
+          const jsmntok_t *t = &tokens[parser->toksuper];
+          if (t->type == JSMN_OBJECT ||
+              (t->type == JSMN_STRING && t->size != 0)) {
+            return JSMN_ERROR_INVAL;
+          }
+        }
+  #else
+      /* In non-strict mode every unquoted value is a primitive */
+      default:
+  #endif
+        r = jsmn_parse_primitive(parser, js, len, tokens, num_tokens);
+        if (r < 0) {
+          return r;
+        }
+        count++;
+        if (parser->toksuper != -1 && tokens != NULL) {
+          tokens[parser->toksuper].size++;
+        }
+        break;
+  
+  #ifdef JSMN_STRICT
+      /* Unexpected char in strict mode */
+      default:
+        return JSMN_ERROR_INVAL;
+  #endif
+      }
+    }
+  
+    if (tokens != NULL) {
+      for (i = parser->toknext - 1; i >= 0; i--) {
+        /* Unmatched opened object or array */
+        if (tokens[i].start != -1 && tokens[i].end == -1) {
+          return JSMN_ERROR_PART;
+        }
+      }
+    }
+  
+    return count;
+  }
+  
+  /**
+   * Creates a new parser based over a given buffer with an array of tokens
+   * available.
+   */
+  JSMN_API void jsmn_init(jsmn_parser *parser) {
+    parser->pos = 0;
+    parser->toknext = 0;
+    parser->toksuper = -1;
+  }
+  
+  #endif /* JSMN_HEADER */
+  
+  #ifdef __cplusplus
+  }
+  #endif
+  
+  #endif /* JSMN_H */
+  #ifndef RUNTIME_H
+  #define RUNTIME_H
+  
   #include <stdbool.h>
   #include <stdint.h>
+  
+  /* â”€â”€ Error codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /*                                                                       */
+  /* Negative = error, positive = success (byte/token count).              */
+  /* -1..-3 mirror jsmn; -16 and below are runtime errors.                 */
+  
+  // clang-format off
+  enum rt_err {
+      /* jsmn pass-through (keep in sync with enum jsmnerr) */
+      RT_ERR_NOMEM       = -1,   /* not enough tokens                     */
+      RT_ERR_JSON        = -2,   /* invalid JSON                          */
+      RT_ERR_PARTIAL     = -3,   /* truncated input                       */
+  
+      /* type / structure */
+      RT_ERR_TYPE        = -16,  /* token type != expected type            */
+      RT_ERR_REQUIRED    = -17,  /* required field missing                 */
+      RT_ERR_UNKNOWN_KEY = -18,  /* unrecognised object key (strict mode)  */
+  
+      /* value constraints */
+      RT_ERR_OVERFLOW    = -32,  /* integer exceeds target range (above)   */
+      RT_ERR_UNDERFLOW   = -33,  /* integer exceeds target range (below)   */
+      RT_ERR_STR_LENGTH  = -34,  /* string exceeds maxLength               */
+      RT_ERR_ARRAY_COUNT = -35,  /* array items exceed capacity            */
+      RT_ERR_FLOAT       = -36,  /* not-finite or out-of-range float       */
+  
+      /* encode */
+      RT_ERR_BUFFER      = -48,  /* output buffer too small                */
+  };
+  // clang-format on
+  
+  /* â”€â”€ Tagged type handle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /*                                                                       */
+  /* uint16_t, 2-bit tag in low bits:                                      */
+  /*   xxxxxxxxxxxxxxx1  â†’  primitive     (bits[15:1] = scalar ID)         */
+  /*   xxxxxxxxxxxxx00   â†’  struct index  (bits[15:2] into rt_structs[])   */
+  /*   xxxxxxxxxxxxx10   â†’  array index   (bits[15:2] into rt_arrays[])    */
+  
+  typedef uint16_t rt_type_t;
+  
+  // clang-format off
+  #define RT_PRIM(id)     ((rt_type_t)(((id) << 1) | 1u))
+  #define RT_STRUCT(i)    ((rt_type_t)((i) << 2))
+  #define RT_ARRAY(i)     ((rt_type_t)(((i) << 2) | 2u))
+  
+  #define RT_IS_PRIM(t)   ((t) & 1u)
+  #define RT_IS_STRUCT(t) (((t) & 3u) == 0)
+  #define RT_IS_ARRAY(t)  (((t) & 3u) == 2)
+  #define RT_PRIM_ID(t)   ((t) >> 1)
+  #define RT_IDX(t)       ((t) >> 2)
+  // clang-format on
+  
+  /* â”€â”€ Scalar type IDs (fit in 7 bits) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  
+  // clang-format off
+  #define RT_KIND_BOOL   0
+  #define RT_KIND_CHAR   1
+  #define RT_KIND_U8     2
+  #define RT_KIND_I8     3
+  #define RT_KIND_U16    4
+  #define RT_KIND_I16    5
+  #define RT_KIND_U32    6
+  #define RT_KIND_I32    7
+  #define RT_KIND_U64    8
+  #define RT_KIND_I64    9
+  #define RT_KIND_FLOAT  10
+  #define RT_KIND_DOUBLE 11
+  
+  /* Array kind IDs (only appear in rt_array.kind) */
+  #define RT_KIND_STRING 12
+  #define RT_KIND_FIXED  13
+  #define RT_KIND_VLA    14
+  // clang-format on
+  
+  /* â”€â”€ Table entry types (8 bytes each, zero pointers) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  
+  struct rt_field {
+      uint16_t  off_name;    // byte offset into rt_names[]
+      uint16_t  off_value;   // offsetof to value
+      uint16_t  off_present; // offsetof to bool present, 0xFFFF = required
+      rt_type_t type;        // prim / struct idx / array idx
+  };
+  
+  struct rt_array {
+      uint8_t   kind; // RT_KIND_STRING / RT_KIND_FIXED / RT_KIND_VLA
+      uint8_t   pad;
+      uint16_t  max;       // capacity
+      uint16_t  elem_size; // stride in bytes
+      rt_type_t elem;      // element type (recursive)
+  };
+  
+  struct rt_struct {
+      uint8_t  nfields;
+      uint8_t  pad;
+      uint16_t size;   // sizeof(struct T)
+      uint16_t ntoks;  // max jsmn tokens needed
+      uint16_t field0; // start index into rt_fields[]
+  };
+  
+  struct rt_schemas {
+      const char             *names;   // field name string blob
+      const struct rt_array  *arrays;  // array descriptors
+      const struct rt_field  *fields;  // field descriptors
+      const struct rt_struct *structs; // struct descriptors
+  };
+  
+  struct rt_cursor {
+      uint8_t *ptr;
+      uint32_t pos, len;
+  };
+  
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  
+  int
+  rt_decode(void                    *dst,
+            const struct rt_schemas *schema,
+            int                      struct_idx,
+            const char              *src,
+            uint32_t                 slen,
+            jsmntok_t               *toks,
+            uint32_t                 ntoks);
+  
+  int
+  rt_encode_struct(const struct rt_schemas *schemas,
+                   uint8_t                 *dst,
+                   uint32_t                 dlen,
+                   const void                    *src,
+                   int                      idx);
+  
+  #ifdef __cplusplus
+  }
+  #endif
+  
+  #endif
+  #include <assert.h>
+  #include <stdbool.h>
+  #include <stdint.h>
+  #include <string.h>
+  
+  #ifdef JF_HAS_FLOAT
+  #include <float.h>
+  #include <math.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  #endif
+  
+  #ifdef JF_HAS_INT64
+  typedef uint64_t jf_acc_t;
+  typedef int64_t  jf_sacc_t;
+  #define JF_ACC_MAX UINT64_MAX
+  #else
+  typedef uint32_t jf_acc_t;
+  typedef int32_t  jf_sacc_t;
+  #define JF_ACC_MAX UINT32_MAX
+  #endif
+  
+  static inline int
+  tok_memcmp(const char      *json,
+             const jsmntok_t *tok,
+             const char      *cmp,
+             uint32_t         len)
+  {
+      return tok->end - tok->start == (int)len
+                 ? memcmp(json + tok->start, cmp, len)
+                 : -1;
+  }
+  
+  static inline int
+  tok_memlen(const char *json, const jsmntok_t *tok)
+  {
+      return (uint32_t)(tok->end - tok->start);
+  }
+  
+  static inline void
+  tok_memcpy(const char *json, const jsmntok_t *tok, void *dst, uint32_t len)
+  {
+      memcpy(dst, &json[tok->start], len);
+  }
+  
+  static int
+  tok_raw_int(const char *json, const jsmntok_t *tok, jf_acc_t *out, bool *neg)
+  {
+      const char *c = &json[tok->start];
+      const char *end = &json[tok->end];
+      jf_acc_t    val = 0;
+  
+      *neg = false;
+      if (c < end && *c == '-') {
+          *neg = true;
+          c++;
+      }
+  
+      // Must have at least one digit
+      if (c >= end || *c < '0' || *c > '9') {
+          return -1;
+      }
+  
+      // Reject leading zeros (JSON spec)
+      if (*c == '0' && c + 1 < end && c[1] >= '0' && c[1] <= '9') {
+          return -1;
+      }
+  
+      while (c < end) {
+          if (*c < '0' || *c > '9') {
+              return -1; // non-digit -> not a pure int
+          }
+          jf_acc_t d = (jf_acc_t)(*c - '0');
+          if (val > (JF_ACC_MAX - d) / 10) {
+              return -1; // overflow
+          }
+          val = val * 10 + d;
+          c++;
+      }
+  
+      *out = val;
+      return 0;
+  }
+  
+  // clang-format off
+  #define JF_UINT32_TYPES(X)                     \
+      X(u8,   uint8_t,   UINT8_MAX)              \
+      X(u16,  uint16_t,  UINT16_MAX)             \
+      X(u32,  uint32_t,  UINT32_MAX)
+  
+  #define JF_INT32_TYPES(X)                      \
+      X(i8,   int8_t,    INT8_MAX)               \
+      X(i16,  int16_t,   INT16_MAX)              \
+      X(i32,  int32_t,   INT32_MAX)
+  
+  #ifdef JF_HAS_INT64
+  #define JF_UINT64_TYPES(X)                     \
+      X(u64,  uint64_t,  UINT64_MAX)
+  
+  #define JF_INT64_TYPES(X)                      \
+      X(i64,  int64_t,   INT64_MAX)
+  #endif
+  // clang-format on
+  
+  #define GEN_UINT_PARSER(name, ctype, hi)                                       \
+      int tok_##name(const char *json, const jsmntok_t *tok, ctype *out)         \
+      {                                                                          \
+          jf_acc_t raw;                                                          \
+          bool     neg;                                                          \
+          if (tok_raw_int(json, tok, &raw, &neg))                                \
+              return -1;                                                         \
+          if (neg || raw > (jf_acc_t)(hi))                                       \
+              return -1;                                                         \
+          *out = (ctype)raw;                                                     \
+          return 0;                                                              \
+      }
+  
+  /* Signed range check avoids implementation-defined narrowing:
+   * For negative values, |v| lives in [1, MAX+1] so (raw-1) in [0, MAX].
+   * Result = -(ctype)(raw-1) - 1 is always well-defined.                       */
+  #define GEN_INT_PARSER(name, ctype, hi)                                        \
+      int tok_##name(const char *json, const jsmntok_t *tok, ctype *out)         \
+      {                                                                          \
+          jf_acc_t raw;                                                          \
+          bool     neg;                                                          \
+          if (tok_raw_int(json, tok, &raw, &neg))                                \
+              return -1;                                                         \
+          if (neg) {                                                             \
+              if (raw == 0) {                                                    \
+                  *out = 0;                                                      \
+                  return 0;                                                      \
+              }                                                                  \
+              if (raw - 1 > (jf_acc_t)(hi))                                      \
+                  return -1;                                                     \
+              *out = -(ctype)(raw - 1) - 1;                                      \
+          } else {                                                               \
+              if (raw > (jf_acc_t)(hi))                                          \
+                  return -1;                                                     \
+              *out = (ctype)raw;                                                 \
+          }                                                                      \
+          return 0;                                                              \
+      }
+  
+  JF_UINT32_TYPES(GEN_UINT_PARSER)
+  JF_INT32_TYPES(GEN_INT_PARSER)
+  
+  #ifdef JF_HAS_INT64
+  JF_UINT64_TYPES(GEN_UINT_PARSER)
+  JF_INT64_TYPES(GEN_INT_PARSER)
+  #endif
+  
+  #undef GEN_UINT_PARSER
+  #undef GEN_INT_PARSER
+  
+  #ifdef JF_HAS_FLOAT
+  
+  // NOTE: strtod is locale-sensitive â€” caller must ensure LC_NUMERIC is "C".
+  static int
+  tok_raw_float(const char *json, const jsmntok_t *tok, double *out)
+  {
+      char buf[64];
+      int  len = tok->end - tok->start;
+      if (len <= 0 || len >= (int)sizeof(buf)) {
+          return -1;
+      }
+      memcpy(buf, &json[tok->start], (size_t)len);
+      buf[len] = '\0';
+      char *end;
+      *out = strtod(buf, &end);
+      if (end != &buf[len]) {
+          return -1;
+      }
+      return 0;
+  }
+  
+  int
+  tok_float(const char *json, const jsmntok_t *tok, float *out)
+  {
+      double raw;
+      if (tok_raw_float(json, tok, &raw)) {
+          return -1;
+      }
+      if (!isfinite(raw) || raw < -(double)FLT_MAX || raw > (double)FLT_MAX) {
+          return -1;
+      }
+      *out = (float)raw;
+      return 0;
+  }
+  
+  int
+  tok_double(const char *json, const jsmntok_t *tok, double *out)
+  {
+      double raw;
+      if (tok_raw_float(json, tok, &raw)) {
+          return -1;
+      }
+      if (!isfinite(raw)) {
+          return -1;
+      }
+      *out = raw;
+      return 0;
+  }
+  
+  #endif /* JF_HAS_FLOAT */
+  
+  int
+  tok_bool(const char *json, const jsmntok_t *tok, bool *result)
+  {
+      assert(tok->type == JSMN_PRIMITIVE);
+      if (tok_memcmp(json, tok, "true", 4) == 0) {
+          *result = true;
+          return 0;
+      }
+      if (tok_memcmp(json, tok, "false", 5) == 0) {
+          *result = false;
+          return 0;
+      }
+      return -1;
+  }
+  
+  int
+  tok_str(const char      *json,
+          const jsmntok_t *tok,
+          const char     **dst_p,
+          uint32_t        *len)
+  {
+      assert(tok->type == JSMN_STRING);
+      uint32_t slen = (uint32_t)(tok->end - tok->start);
+      if (slen <= *len) {
+          *len = slen;
+          *dst_p = &json[tok->start];
+          return 0;
+      }
+      return -1;
+  }
+  
+  bool
+  tok_is_null(const char *json, const jsmntok_t *tok)
+  {
+      return tok_memcmp(json, tok, "null", 4) == 0;
+  }
+  
+  int
+  tok_skip(const jsmntok_t *toks, int pos)
+  {
+      int pending = 1;
+      int i = pos;
+      while (pending > 0) {
+          pending--;
+          if (toks[i].type == JSMN_OBJECT) {
+              pending += toks[i].size * 2;
+          } else if (toks[i].type == JSMN_ARRAY) {
+              pending += toks[i].size;
+          }
+          i++;
+      }
+      return i - pos;
+  }
+  
+  // clang-format off
+  #define offset_ptr(T, base, off)       ((T *)((uint8_t *)(base) + (off)))
+  #define offset_val(T, base, off)       (*offset_ptr(T, base, off))
+  #define field_is_optional(f)           ((f)->off_present != 0xFFFF)
+  #define field_is_present(f, base)      (offset_val(bool, base, (f)->off_present))
+  #define field_set_present(f, base, v)  (offset_val(bool, base, (f)->off_present) = (v))
+  // clang-format on
+  
+  struct decoder {
+      const struct rt_schemas *schemas;
+      const char              *json;
+      jsmntok_t               *toks;
+  };
+  
+  static int
+  decode_primitive(void            *dst,
+                   rt_type_t        type,
+                   uint16_t         off_value,
+                   const char      *json,
+                   const jsmntok_t *tok)
+  {
+      switch (RT_PRIM_ID(type)) {
+      case RT_KIND_BOOL:
+          return tok_bool(json, tok, offset_ptr(bool, dst, off_value));
+      case RT_KIND_CHAR:
+      case RT_KIND_U8:
+          return tok_u8(json, tok, offset_ptr(uint8_t, dst, off_value));
+      case RT_KIND_I8:
+          return tok_i8(json, tok, offset_ptr(int8_t, dst, off_value));
+      case RT_KIND_U16:
+          return tok_u16(json, tok, offset_ptr(uint16_t, dst, off_value));
+      case RT_KIND_I16:
+          return tok_i16(json, tok, offset_ptr(int16_t, dst, off_value));
+      case RT_KIND_U32:
+          return tok_u32(json, tok, offset_ptr(uint32_t, dst, off_value));
+      case RT_KIND_I32:
+          return tok_i32(json, tok, offset_ptr(int32_t, dst, off_value));
+  #ifdef JF_HAS_INT64
+      case RT_KIND_U64:
+          return tok_u64(json, tok, offset_ptr(uint64_t, dst, off_value));
+      case RT_KIND_I64:
+          return tok_i64(json, tok, offset_ptr(int64_t, dst, off_value));
+  #endif
+  #ifdef JF_HAS_FLOAT
+      case RT_KIND_FLOAT:
+          return tok_float(json, tok, offset_ptr(float, dst, off_value));
+      case RT_KIND_DOUBLE:
+          return tok_double(json, tok, offset_ptr(double, dst, off_value));
+  #endif
+      default:
+          // Error with code generator. *Should* be impossible. Fail loudly
+          assert(false);
+          return -1;
+      }
+  }
+  static int
+  decode_struct(const struct decoder *dec, void *dst, int struct_idx, int itok);
+  
+  static int
+  decode_type(const struct decoder  *dec,
+              void                  *dst,
+              const struct rt_field *field,
+              int                    itok)
+  {
+      if (RT_IS_ARRAY(field->type)) {
+          // TODO decode the array
+          return -1;
+      } else if (RT_IS_STRUCT(field->type)) {
+          return decode_struct(dec,
+                               offset_ptr(void, dst, field->off_value),
+                               RT_IDX(field->type),
+                               itok);
+      } else {
+          return decode_primitive(
+              dst, field->type, field->off_value, dec->json, &dec->toks[itok]);
+      }
+  }
+  
+  static int
+  decode_struct(const struct decoder *dec, void *dst, int struct_idx, int itok)
+  {
+      const struct rt_struct *s = &dec->schemas->structs[struct_idx];
+      int                     nkeys, err = 0, n = itok;
+  
+      // Peel { token
+      if (dec->toks[n].type != JSMN_OBJECT) {
+          return RT_ERR_TYPE;
+      }
+      nkeys = dec->toks[n].size;
+      n++;
+  
+      for (int i = 0; i < nkeys; i++) {
+          // parse out key, value token
+          int ktok = n;     // toks[n]   = key
+          int vtok = n + 1; // toks[n+1] = value
+          for (int fidx = 0; fidx < s->nfields; fidx++) {
+              // get field and key
+              const struct rt_field *field =
+                  &dec->schemas->fields[s->field0 + fidx];
+              const char *key = &dec->schemas->names[field->off_name];
+  
+              // If key matches field descriptor name, parse the value
+              if (!tok_memcmp(
+                      dec->json, &dec->toks[ktok], key, (uint32_t)strlen(key))) {
+                  if (field_is_optional(field)) {
+                      if (tok_is_null(dec->json, &dec->toks[vtok])) {
+                          field_set_present(field, dst, false);
+                      } else {
+                          err = decode_type(dec, dst, field, vtok);
+                          if (err < 0) {
+                              return err;
+                          }
+                          field_set_present(field, dst, true);
+                      }
+                  } else {
+                      err = decode_type(dec, dst, field, vtok);
+                      if (err < 0) {
+                          return err;
+                      }
+                  }
+  
+                  break;
+              }
+          }
+          // skip key,val. ie: n++; tok_skip(toks, n);
+          n += 1 + tok_skip(dec->toks, n + 1);
+      }
+      return 0;
+  }
+  
+  int
+  rt_decode(void                    *dst,
+            const struct rt_schemas *schema,
+            int                      struct_idx,
+            const char              *src,
+            uint32_t                 slen,
+            jsmntok_t               *toks,
+            uint32_t                 ntoks)
+  {
+      int         ret, atoks;
+      jsmn_parser parser;
+  
+      // Do the parse
+      jsmn_init(&parser);
+      atoks = jsmn_parse(&parser, src, slen, toks, ntoks);
+  
+      // Early return jsmn parser error
+      if (atoks < 0) {
+          // atoks <= means error
+          switch ((enum jsmnerr)atoks) {
+          case JSMN_ERROR_NOMEM: // Not enough tokens (should be impossible)
+          case JSMN_ERROR_INVAL: // Bad JSON string
+          case JSMN_ERROR_PART:  // needs more json
+              break;
+          }
+          // Return the error
+          return atoks;
+      }
+  
+      // Early return not a struct
+      if (!(atoks >= 1)) {
+          return RT_ERR_PARTIAL;
+      }
+  
+      struct decoder dec = {.schemas = schema, .json = src, .toks = toks};
+  
+      // Call parser
+      if (toks[0].type == JSMN_OBJECT) {
+          ret = decode_struct(&dec, dst, struct_idx, 0);
+          return ret < 0 ? ret : parser.pos;
+      } else if (toks[0].type == JSMN_ARRAY) {
+          // TODO: flatten.py filters out top level arrays. we need to fix that
+          //       before adding top level array support.
+          // ie:   schema_decode_my_vla(struct my_vla*, ...)
+          //       schema_decode_my_arr(struct items[4], ...)
+          // NOTE: For top level arrays we do not use vla__{name}__n{n} convention
+          //       but instead use the declared name per the spec
+          return RT_ERR_TYPE;
+      } else {
+          return RT_ERR_TYPE;
+      }
+  }
+  
+  #define cursor_push(_c, _b) ((_c)->ptr[(_c)->pos] = _b)
+  #define cursor_copy(_c, _b, _l) memcpy((_c)->ptr + (_c)->pos, (_b), _l)
+  #define cursor_push_safe(_c, _b)                                               \
+      do {                                                                       \
+          if ((_c)->ptr && (_c)->pos < (_c)->len) {                              \
+              cursor_push(_c, _b);                                               \
+              (_c)->pos++;                                                       \
+          } else {                                                               \
+              goto fail;                                                         \
+          }                                                                      \
+      } while (0)
+  
+  #define cursor_copy_safe(_c, _b, _l)                                           \
+      do {                                                                       \
+          if ((_c)->ptr && (_c)->pos + (_l) <= (_c)->len) {                      \
+              cursor_copy(_c, _b, _l);                                           \
+              (_c)->pos += _l;                                                   \
+          } else {                                                               \
+              goto fail;                                                         \
+          }                                                                      \
+      } while (0)
+  
+  #define cursor_init(_n, _b, _l)                                                \
+      struct rt_cursor _n = {                                                    \
+          .ptr = (_b),                                                           \
+          .len = (_l),                                                           \
+          .pos = 0,                                                              \
+      }
+  
+  const char *
+  fmt_uint(jf_acc_t val, char (*buf)[20], uint8_t *sz)
+  {
+      *sz = 0;
+      do {
+          (*buf)[20 - ++*sz] = '0' + (char)(val % 10);
+          val /= 10;
+      } while (val);
+      return (const char *)&(*buf)[20 - *sz];
+  }
+  
+  /* Negate without UB: -(val+1) avoids overflow at MIN, the +1 in unsigned
+   * recovers the correct absolute value.  e.g. -INT32_MIN â†’ 2147483648u.   */
+  const char *
+  fmt_int(jf_sacc_t val, char (*buf)[20], uint8_t *sz)
+  {
+      if (val >= 0) {
+          return fmt_uint((jf_acc_t)val, buf, sz);
+      } else {
+          const char *result = fmt_uint((jf_acc_t)(-(val + 1)) + 1, buf, sz);
+          (*buf)[20 - ++*sz] = '-';
+          return (const char *)&(*buf)[20 - *sz];
+      }
+  }
+  
+  struct encoder {
+      const struct rt_schemas *schemas;
+      struct rt_cursor        *cursor;
+  };
+  
+  static int
+  encode_type(struct encoder *enc, void *src, rt_type_t type);
+  
+  static int
+  encode_primitive(struct rt_cursor *cursor,
+                   rt_type_t         type,
+                   const uint8_t    *base,
+                   uint16_t          off)
+  {
+      uint8_t sz;
+      union {
+          char fmt[20];
+          char snp[25];
+      } tmp;
+      const char *fmt;
+      switch (RT_PRIM_ID(type)) {
+      case RT_KIND_BOOL:
+          if (offset_val(bool, base, off)) {
+              cursor_copy_safe(cursor, "true", 4);
+          } else {
+              cursor_copy_safe(cursor, "false", 5);
+          }
+          break;
+      case RT_KIND_CHAR:
+      case RT_KIND_U8:
+          fmt = fmt_uint(offset_val(const uint8_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_I8:
+          fmt = fmt_int(offset_val(const int8_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_U16:
+          fmt = fmt_uint(offset_val(const uint16_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_I16:
+          fmt = fmt_int(offset_val(const int16_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_U32:
+          fmt = fmt_uint(offset_val(const uint32_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_I32:
+          fmt = fmt_int(offset_val(const int32_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+  #ifdef JF_HAS_INT64
+      case RT_KIND_U64:
+          fmt = fmt_uint(offset_val(const uint64_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+      case RT_KIND_I64:
+          fmt = fmt_int(offset_val(const int64_t, base, off), &tmp.fmt, &sz);
+          cursor_copy_safe(cursor, fmt, sz);
+          break;
+  #endif
+  #ifdef JF_HAS_FLOAT
+      case RT_KIND_FLOAT:
+  
+          sz = snprintf(tmp.snp,
+                        sizeof(tmp),
+                        "%g",
+                        (double)offset_val(const float, base, off));
+          assert(sz < (int)sizeof(tmp));
+          cursor_copy_safe(cursor, tmp.snp, sz);
+          break;
+      case RT_KIND_DOUBLE:
+          sz = snprintf(tmp.snp,
+                        sizeof(tmp.snp),
+                        "%.17g",
+                        offset_val(const double, base, off));
+          assert(sz < (int)sizeof(tmp.snp));
+          cursor_copy_safe(cursor, tmp.snp, sz);
+          break;
+  #endif
+      }
+      return (int)cursor->pos;
+  fail:
+      return RT_ERR_BUFFER;
+  }
+  
+  /* Compute element stride for arrays where elem_size==0 (inlined fixed dims) */
+  static uint16_t
+  calculate_array_stride(const struct rt_schemas *schema,
+                         const struct rt_array   *a)
+  {
+      if (a->elem_size != 0) {
+          return a->elem_size;
+      } else {
+          assert(RT_IS_ARRAY(a->elem));
+          const struct rt_array *child = &schema->arrays[RT_IDX(a->elem)];
+          return child->max * calculate_array_stride(schema, child);
+      }
+  }
+  
+  static int
+  encode_string(struct rt_cursor *c, const char *src, uint32_t len)
+  {
+      cursor_push_safe(c, '"');
+      cursor_copy_safe(c, src, len);
+      cursor_push_safe(c, '"');
+      return c->pos;
+  fail:
+      return RT_ERR_BUFFER;
+  }
+  
+  static int
+  encode_array(struct encoder *enc, void *src, int idx)
+  {
+      const struct rt_array *a = &enc->schemas->arrays[idx];
+      if (a->kind == RT_KIND_STRING) {
+          return encode_string(enc->cursor, src, strlen(src));
+      } else {
+          // TODO this is a compile time known attribute. ie: a->stride
+          uint16_t       stride = calculate_array_stride(enc->schemas, a);
+          const uint8_t *items;
+          int            count;
+          if (a->kind == RT_KIND_FIXED) {
+              count = (int)a->max;
+              items = src;
+          } else {
+              // We wrapped array with a length+pad prefix
+              count = (int)*(const uint32_t *)src; // read length
+              items = offset_ptr(void, src, 8);    // skip prefix
+          }
+  
+          cursor_push_safe(enc->cursor, '[');
+          for (int i = 0; i < count; i++) {
+              if (i > 0) {
+                  cursor_push_safe(enc->cursor, ',');
+              }
+              int step = i * stride,
+                  err = encode_type(enc, offset_ptr(void, items, step), a->elem);
+              if (err < 0) {
+                  goto fail;
+              }
+          }
+      }
+      cursor_push_safe(enc->cursor, ']');
+      return enc->cursor->pos;
+  fail:
+      return RT_ERR_BUFFER;
+  }
+  
+  static int
+  encode_struct(struct encoder *enc, const void *src, int idx)
+  {
+      const struct rt_struct *s = &enc->schemas->structs[idx];
+      int                     err = -1;
+      bool                    first = true;
+  
+      cursor_push_safe(enc->cursor, '{');
+      for (int fidx = s->field0; fidx < s->field0 + s->nfields; fidx++) {
+          const struct rt_field *f = &enc->schemas->fields[fidx];
+  
+          // Skip optional absent fields
+          if (field_is_optional(f) && !field_is_present(f, src)) {
+              continue;
+          }
+  
+          // Add a comma when appending
+          if (first) {
+              first = false;
+          } else {
+              cursor_push_safe(enc->cursor, ',');
+          }
+  
+          // "fieldname":
+          cursor_push_safe(enc->cursor, '"');
+          cursor_copy_safe(enc->cursor,
+                           &enc->schemas->names[f->off_name],
+                           strlen(&enc->schemas->names[f->off_name]));
+          cursor_push_safe(enc->cursor, '"');
+          cursor_push_safe(enc->cursor, ':');
+  
+          // value
+          err = encode_type(enc, offset_ptr(void, src, f->off_value), f->type);
+          if (err < 0) {
+              goto fail;
+          }
+      }
+      cursor_push_safe(enc->cursor, '}');
+      return enc->cursor->pos;
+  fail:
+      return RT_ERR_BUFFER;
+  }
+  
+  static int
+  encode_type(struct encoder *enc, void *src, rt_type_t type)
+  {
+      if (RT_IS_ARRAY(type)) {
+          return encode_array(enc, src, RT_IDX(type));
+      } else if (RT_IS_STRUCT(type)) {
+          return encode_struct(enc, src, RT_IDX(type));
+      } else {
+          return encode_primitive(enc->cursor, type, src, 0);
+      }
+  }
+  
+  int
+  rt_encode_struct(const struct rt_schemas *schemas,
+                   uint8_t                 *dst,
+                   uint32_t                 dlen,
+                   const void              *src,
+                   int                      idx)
+  {
+      struct rt_cursor cursor = {.ptr = dst, .pos = 0, .len = dlen};
+      struct encoder   enc = {.cursor = &cursor, .schemas = schemas};
+      return encode_struct(&enc, src, idx);
+  }
+  
+  '''
+# ---
+# name: test_renderer_schema_generated_decl[jsmn-every-type]
+  '''
+  #define SCHEMA_EVERY_TYPE_LEN (247)
   
   struct every_type {
       uint8_t p_u8;
@@ -38,18 +1376,12 @@
       uint32_t dlen,
       const struct every_type *src);
   
-  uint32_t schema_len_every_type(const struct every_type *val);
-  
-  #endif /* __JSMN_FORGE_H__ */
   
   '''
 # ---
-# name: test_render_snapshot[jsmn-vla]
+# name: test_renderer_schema_generated_decl[jsmn-vla]
   '''
-  #ifndef __JSMN_FORGE_H__
-  #define __JSMN_FORGE_H__
-  #include <stdbool.h>
-  #include <stdint.h>
+  #define SCHEMA_VLA_COMBOS_LEN (5761)
   
   struct vla__u32__n3 {
       uint32_t len;
@@ -121,18 +1453,14 @@
       uint32_t dlen,
       const struct vla_combos *src);
   
-  uint32_t schema_len_vla_combos(const struct vla_combos *val);
-  
-  #endif /* __JSMN_FORGE_H__ */
   
   '''
 # ---
-# name: test_render_snapshot[jsmn]
+# name: test_renderer_schema_generated_decl[jsmn]
   '''
-  #ifndef __JSMN_FORGE_H__
-  #define __JSMN_FORGE_H__
-  #include <stdbool.h>
-  #include <stdint.h>
+  #define SCHEMA_CHILD_LEN (56)
+  #define SCHEMA_PARENT_LEN (236)
+  #define SCHEMA_SIBLING_LEN (20)
   
   struct child {
       bool flag;
@@ -188,8 +1516,6 @@
       uint32_t dlen,
       const struct child *src);
   
-  uint32_t schema_len_child(const struct child *val);
-  
   int32_t schema_decode_parent_tok(
       struct parent *dst,
       const char *src,
@@ -206,8 +1532,6 @@
       uint8_t *dst,
       uint32_t dlen,
       const struct parent *src);
-  
-  uint32_t schema_len_parent(const struct parent *val);
   
   int32_t schema_decode_sibling_tok(
       struct sibling *dst,
@@ -226,19 +1550,12 @@
       uint32_t dlen,
       const struct sibling *src);
   
-  uint32_t schema_len_sibling(const struct sibling *val);
-  
-  #endif /* __JSMN_FORGE_H__ */
   
   '''
 # ---
-# name: test_render_tables_snapshot[jsmn-every-type]
+# name: test_renderer_schema_generated_impl[jsmn-every-type]
   '''
-  #include "jsmn_forge.h"
-  #include "runtime.h"
-  #include <stddef.h>
-  
-  static const char rt_names[] =
+  static const char schema_strings[] =
       "p_u8\0" /* 0 */
       "p_i8\0" /* 5 */
       "p_u16\0" /* 10 */
@@ -253,12 +1570,12 @@
       "p_str\0" /* 65 */
   ;
   
-  static const struct rt_array rt_arrays[] = {
+  static const struct rt_array schema_arrays[] = {
       /* [0] string char max=17 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
       { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
   };
   
-  static const struct rt_field rt_fields[] = {
+  static const struct rt_field schema_fields[] = {
       /* [0] every_type.p_u8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
       { 0, offsetof(struct every_type, p_u8), 0xFFFF, RT_PRIM(RT_KIND_U8) },
       /* [1] every_type.p_i8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
@@ -285,22 +1602,57 @@
       { 65, offsetof(struct every_type, p_str), 0xFFFF, RT_ARRAY(0) },
   };
   
-  static const struct rt_struct rt_structs[] = {
+  static const struct rt_struct schema_structs[] = {
       /* [0] every_type @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
       { 12, 0, sizeof(struct every_type), 25, 0 },
   };
   
-  #define RT_IDX_EVERY_TYPE 0
+  #define SCHEMA_EVERY_TYPE_KEY 0
+  
+  
+  static const struct rt_schemas schema_schemas = {
+      .names   = schema_strings,
+      .arrays  = schema_arrays,
+      .fields  = schema_fields,
+      .structs = schema_structs,
+  };
+  
+  int32_t
+  schema_decode_every_type_tok(
+      struct every_type *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return rt_decode(dst, &schema_schemas, SCHEMA_EVERY_TYPE_KEY, src, slen, toks, ntoks);
+  }
+  
+  int32_t
+  schema_decode_every_type(
+      struct every_type *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[25];
+      return schema_decode_every_type_tok(dst, src, slen, toks, 25);
+  }
+  
+  int32_t
+  schema_encode_every_type(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct every_type *src)
+  {
+  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_EVERY_TYPE_KEY);
+  }
+  
   
   '''
 # ---
-# name: test_render_tables_snapshot[jsmn-vla]
+# name: test_renderer_schema_generated_impl[jsmn-vla]
   '''
-  #include "jsmn_forge.h"
-  #include "runtime.h"
-  #include <stddef.h>
-  
-  static const char rt_names[] =
+  static const char schema_strings[] =
       "d_vvv\0" /* 0 */
       "d_vvf\0" /* 6 */
       "d_vfv\0" /* 12 */
@@ -311,7 +1663,7 @@
       "d_fff\0" /* 42 */
   ;
   
-  static const struct rt_array rt_arrays[] = {
+  static const struct rt_array schema_arrays[] = {
       /* [0] vla vla__u32__n3 max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { RT_KIND_VLA, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
       /* [1] vla vla__vla__u32__n3__n4 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
@@ -342,7 +1694,7 @@
       { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(8) },
   };
   
-  static const struct rt_field rt_fields[] = {
+  static const struct rt_field schema_fields[] = {
       /* [0] vla_combos.d_vvv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { 0, offsetof(struct vla_combos, d_vvv), 0xFFFF, RT_ARRAY(2) },
       /* [1] vla_combos.d_vvf @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
@@ -361,22 +1713,57 @@
       { 42, offsetof(struct vla_combos, d_fff), 0xFFFF, RT_ARRAY(13) },
   };
   
-  static const struct rt_struct rt_structs[] = {
+  static const struct rt_struct schema_structs[] = {
       /* [0] vla_combos @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { 8, 0, sizeof(struct vla_combos), 697, 0 },
   };
   
-  #define RT_IDX_VLA_COMBOS 0
+  #define SCHEMA_VLA_COMBOS_KEY 0
+  
+  
+  static const struct rt_schemas schema_schemas = {
+      .names   = schema_strings,
+      .arrays  = schema_arrays,
+      .fields  = schema_fields,
+      .structs = schema_structs,
+  };
+  
+  int32_t
+  schema_decode_vla_combos_tok(
+      struct vla_combos *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return rt_decode(dst, &schema_schemas, SCHEMA_VLA_COMBOS_KEY, src, slen, toks, ntoks);
+  }
+  
+  int32_t
+  schema_decode_vla_combos(
+      struct vla_combos *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[697];
+      return schema_decode_vla_combos_tok(dst, src, slen, toks, 697);
+  }
+  
+  int32_t
+  schema_encode_vla_combos(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct vla_combos *src)
+  {
+  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_VLA_COMBOS_KEY);
+  }
+  
   
   '''
 # ---
-# name: test_render_tables_snapshot[jsmn]
+# name: test_renderer_schema_generated_impl[jsmn]
   '''
-  #include "jsmn_forge.h"
-  #include "runtime.h"
-  #include <stddef.h>
-  
-  static const char rt_names[] =
+  static const char schema_strings[] =
       "flag\0" /* 0 */
       "name\0" /* 5 */
       "nested\0" /* 10 */
@@ -385,7 +1772,7 @@
       "tags\0" /* 29 */
   ;
   
-  static const struct rt_array rt_arrays[] = {
+  static const struct rt_array schema_arrays[] = {
       /* [0] string char max=33 @ /forge:~1~1test~1render~1v0/components/schemas/child */
       { RT_KIND_STRING, 0, 33, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
       /* [1] vla vla__u32__n5 max=5 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
@@ -396,7 +1783,7 @@
       { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(2) },
   };
   
-  static const struct rt_field rt_fields[] = {
+  static const struct rt_field schema_fields[] = {
       /* [0] child.flag @ /forge:~1~1test~1render~1v0/components/schemas/child */
       { 0, offsetof(struct child, flag), 0xFFFF, RT_PRIM(RT_KIND_BOOL) },
       /* [1] child.name @ /forge:~1~1test~1render~1v0/components/schemas/child */
@@ -413,7 +1800,7 @@
       { 17, offsetof(struct sibling, count) + offsetof(struct optional__u32, maybe), offsetof(struct sibling, count), RT_PRIM(RT_KIND_U32) },
   };
   
-  static const struct rt_struct rt_structs[] = {
+  static const struct rt_struct schema_structs[] = {
       /* [0] child @ /forge:~1~1test~1render~1v0/components/schemas/child */
       { 2, 0, sizeof(struct child), 5, 0 },
       /* [1] parent @ /forge:~1~1test~1render~1v0/components/schemas/parent */
@@ -422,9 +1809,108 @@
       { 1, 0, sizeof(struct sibling), 3, 6 },
   };
   
-  #define RT_IDX_CHILD 0
-  #define RT_IDX_PARENT 1
-  #define RT_IDX_SIBLING 2
+  #define SCHEMA_CHILD_KEY 0
+  #define SCHEMA_PARENT_KEY 1
+  #define SCHEMA_SIBLING_KEY 2
+  
+  
+  static const struct rt_schemas schema_schemas = {
+      .names   = schema_strings,
+      .arrays  = schema_arrays,
+      .fields  = schema_fields,
+      .structs = schema_structs,
+  };
+  
+  int32_t
+  schema_decode_child_tok(
+      struct child *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return rt_decode(dst, &schema_schemas, SCHEMA_CHILD_KEY, src, slen, toks, ntoks);
+  }
+  
+  int32_t
+  schema_decode_child(
+      struct child *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[5];
+      return schema_decode_child_tok(dst, src, slen, toks, 5);
+  }
+  
+  int32_t
+  schema_encode_child(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct child *src)
+  {
+  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_CHILD_KEY);
+  }
+  
+  int32_t
+  schema_decode_parent_tok(
+      struct parent *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return rt_decode(dst, &schema_schemas, SCHEMA_PARENT_KEY, src, slen, toks, ntoks);
+  }
+  
+  int32_t
+  schema_decode_parent(
+      struct parent *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[18];
+      return schema_decode_parent_tok(dst, src, slen, toks, 18);
+  }
+  
+  int32_t
+  schema_encode_parent(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct parent *src)
+  {
+  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_PARENT_KEY);
+  }
+  
+  int32_t
+  schema_decode_sibling_tok(
+      struct sibling *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return rt_decode(dst, &schema_schemas, SCHEMA_SIBLING_KEY, src, slen, toks, ntoks);
+  }
+  
+  int32_t
+  schema_decode_sibling(
+      struct sibling *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[3];
+      return schema_decode_sibling_tok(dst, src, slen, toks, 3);
+  }
+  
+  int32_t
+  schema_encode_sibling(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct sibling *src)
+  {
+  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_SIBLING_KEY);
+  }
+  
   
   '''
 # ---

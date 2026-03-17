@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TextIO
+import re
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import (
+    ChoiceLoader,
+    DictLoader,
+    Environment,
+    PackageLoader,
+)
 
 from .descriptor import (
     ArrayDescriptor,
@@ -15,10 +21,10 @@ from .descriptor import (
     StructDescriptor,
     Table,
     add_array_with_cache,
+    sum_encode_len_with_cache,
     sum_ntoks_with_cache,
 )
 from .filters import filters, tests
-from .flatten import flatten_with_resolver
 from .ir import CDecl, CStruct, CType, CUnion, Field, FixedDims
 from .mangle import dim_walk, make_maybe, make_optional, make_vla, mangle
 
@@ -26,7 +32,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from jsmn_forge.node import Location
-    from referencing._core import Resolver
 
 
 def resolve_ctype(ctype: CType, optional: bool = False) -> CType:
@@ -118,7 +123,19 @@ def build_tables(
     structs: list[StructDescriptor] = []
     fields: list[FieldDescriptor] = []
     arrays, add_array = add_array_with_cache()
+    # NOTE ntoks/len summers are incorrect w/ Optional type wrappers and VLA 
+    #      type wrappers. Synthetic wrapper types are helpers which are 
+    #      not represented on the wire. For example, we represent an optional
+    #      field with a "present" bit. Our current calculations assume the wire
+    #      transmits the present field.
+    #      To fix, mangle.py should tag the CStruct vla's as a CVla, and the 
+    #      Optional maybe as CMaybe, and inherit CStruct and CUnion respectively.
+    #      This will behave as expected everywhere, and summers can test if its 
+    #      synthetic or not.
+    #      These synthetic types should declare in mangle.py. The summers should
+    #      Move into it's own file so no circulars. (ie: calculate.py)
     sum_ntoks = sum_ntoks_with_cache()
+    sum_encode_len = sum_encode_len_with_cache()
     strings = Strings()
 
     def resolve_array(ctype: CType, loc: Location) -> Key:
@@ -135,7 +152,11 @@ def build_tables(
                 arr = ArrayDescriptor(
                     key=Key(Table.ARRAY, len(arrays)),
                     loc=loc,
+                    # NOTE resolve_array synthetically created types are not
+                    #      ordered and memos are not guarenteed available when
+                    #      accounting the ntoks and encode_len
                     ntoks=0,
+                    encode_len=0,
                     ctype=resolve_ctype(ct),
                     kind=kind,
                     max=mx,
@@ -152,6 +173,7 @@ def build_tables(
                 key=struct_key,
                 loc=d.loc,
                 ntoks=sum_ntoks(d),
+                encode_len=sum_encode_len(d),
                 ctype=d.ctype,
                 nfields=len(d.fields),
                 field0=len(fields),
@@ -167,6 +189,7 @@ def build_tables(
                     key=Key(Table.FIELD, len(fields)),
                     loc=d.loc,
                     ntoks=sum_ntoks(f.ctype),
+                    encode_len=sum_encode_len(f.ctype),
                     ctype=resolve_ctype(f.ctype, optional=not f.required),
                     name=f.name,
                     name_offset=strings.add(f.name),
@@ -179,52 +202,63 @@ def build_tables(
     return strings, table
 
 
-@dataclass
-class RenderConfig:
-    resolver: Resolver
-    output_header: TextIO
-    output_source: TextIO
-    guard: str = "__JSMN_FORGE_H__"
-    header_name: str = "jsmn_forge.h"
-    prefix: str = "schema_"
+class Renderer:
+    _env: Environment
 
+    def __init__(
+        self,
+        compiled: dict[CType, CDecl],
+        prefix: str = "schema_",
+        extra_env: dict[str, str] | None = None,
+    ) -> None:
+        def read_and_strip(p: Path) -> str:
+            return re.sub(
+                r'^#include\s+"[^"]*".*\n',
+                "",
+                p.read_text(),
+                flags=re.MULTILINE,
+            )
 
-def render(*specs: Any, config: RenderConfig) -> None:
-    result = flatten_with_resolver(*specs, resolver=config.resolver)
-    if result.errors:
-        raise ValueError(result.errors)
+        runtime_dir = Path(__file__).resolve().parent / "runtime"
+        runtime_mapping = {
+            "jsmn.h": read_and_strip(runtime_dir / "jsmn.h"),
+            "runtime.h": read_and_strip(runtime_dir / "runtime.h"),
+            "runtime.c": read_and_strip(runtime_dir / "runtime.c"),
+        }
+        runtime_loader = DictLoader(runtime_mapping)
+        package_loader = PackageLoader("jsmn_forge", "lang/jsmn/templates")
+        self._env = Environment(
+            loader=ChoiceLoader([runtime_loader, package_loader]),
+            keep_trailing_newline=True,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        sorted_user = sort_decls(compiled)
+        blob, table = build_tables(sorted_user)
+        decls = extend_decls(sorted_user)
+        descriptors = sorted(table.values(), key=lambda d: d.key.pos)
+        for name, fn in tests(sorted_user).items():
+            self._env.tests[name] = fn
+        for name, fn in filters(table=table, decls=decls).items():
+            self._env.filters[name] = fn
+        tpl_globals = {
+            "prefix": prefix,
+            "declarations": decls,
+            "descriptors": descriptors,
+            "strings": list(blob.strings()),
+        }
+        self._env.globals.update(tpl_globals)
+        if extra_env:
+            self._env.globals.update(extra_env)
 
-    sorted_user = sort_decls(result.decls)
-    blob, table = build_tables(sorted_user)
-    decls = extend_decls(sorted_user)
-
-    env = Environment(
-        loader=PackageLoader("jsmn_forge", "lang/jsmn/templates"),
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    for name, fn in tests(sorted_user).items():
-        env.tests[name] = fn
-    for name, fn in filters(table=table, decls=decls).items():
-        env.filters[name] = fn
-
-    # Render header
-    template = env.get_template("header.h.jinja2")
-
-    oh = template.render(
-        decls=decls,
-        guard=config.guard,
-        prefix=config.prefix,
-    )
-    config.output_header.write(oh)
-
-    # Render tables source
-    descriptors = sorted(table.values(), key=lambda d: d.key.pos)
-    tables_template = env.get_template("tables.c.jinja2")
-    os = tables_template.render(
-        header=config.header_name,
-        blob=blob,
-        descriptors=descriptors,
-    )
-    config.output_source.write(os)
+    def render(self, tpl: str, *, hoist_includes: bool = False) -> str:
+        result = self._env.from_string(tpl).render()
+        if hoist_includes:
+            re_find = r"^#include\s+<[^>]*>.*$"
+            re_sub = r"^#include\s+<[^>]*>.*\n"
+            seen: set[str] = set()
+            for m in re.finditer(re_find, result, re.MULTILINE):
+                seen.add(m.group(0))
+            body = re.sub(re_sub, "", result, flags=re.MULTILINE)
+            result = "\n".join(sorted(seen)) + "\n\n" + body if seen else result
+        return result

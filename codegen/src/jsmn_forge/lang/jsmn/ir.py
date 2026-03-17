@@ -90,6 +90,13 @@ class CType(NamedTuple):
     def is_primitive(self) -> bool:
         return self.name in Primitive
 
+    @property
+    def is_string(self) -> bool:
+        """True when the innermost dimension is a string buffer."""
+        if self.name != "char" or not self.dims:
+            return False
+        return self.dims[-1].min == self.dims[-1].max
+
     # NOTE implementation may simplify if when flatten.py builds dimensions,
     #      store dimensions as inner-to-outer instead of outer-to-inner. We
     #      could then iterate naturally instead of doing full dim traversal.
@@ -156,11 +163,22 @@ class Field:
 
 @dataclass
 class CStruct:
-    """Named C struct definition — the primary codegen unit."""
+    """Named C struct definition — A codegen entry unit."""
 
     ctype: CType
     loc: Location
     fields: list[Field]
+
+
+@dataclass
+class CArray:
+    """Named C array definition - A codegen entry unit."""
+
+    ctype: CType
+    elem: CType
+    loc: Location
+    min: int
+    max: int
 
 
 @dataclass
@@ -181,4 +199,4 @@ class CEnum:
     labels: list[str]
 
 
-type CDecl = CStruct | CUnion | CEnum
+type CDecl = CStruct | CUnion | CEnum | CArray

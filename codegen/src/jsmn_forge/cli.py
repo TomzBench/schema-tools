@@ -1,12 +1,32 @@
 """CLI entry point for schema tools cli"""
 
 import argparse
-import shutil
 import sys
 from importlib.resources import files
 from pathlib import Path
+from typing import Any
+
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
+from ruamel.yaml import YAML
+
+from jsmn_forge.lang.jsmn.flatten import flatten_with_resolver
+from jsmn_forge.lang.jsmn.render import Renderer
 
 JSMN_RUNTIME_DIR = files("jsmn_forge").joinpath("lang", "jsmn", "runtime")
+RUNTIME_FILES = ("runtime.c", "runtime.h", "jsmn.h")
+
+yaml = YAML(typ="safe")
+
+
+def parse_spec(p: str) -> Resource:
+    y = yaml.load(Path(p))
+    return Resource.from_contents(y, default_specification=DRAFT202012)
+
+
+def _die(fmt: str, *args: object) -> None:
+    print(f"error: {fmt % args}" if args else f"error: {fmt}", file=sys.stderr)
+    sys.exit(1)
 
 
 def _cmake_dir() -> str:
@@ -21,17 +41,16 @@ def _cmake_dir() -> str:
     raise FileNotFoundError("Cannot locate schema tools cmake modules")
 
 
-def _generate(_args: argparse.Namespace) -> None:
-    raise NotImplementedError()
-
-
-def _runtime(args: argparse.Namespace) -> None:
-    dest = Path(args.output).resolve()
-    dest.mkdir(parents=True, exist_ok=True)
-    for name in ("runtime.c", "runtime.h", "jsmn.h"):
-        fin = JSMN_RUNTIME_DIR / name
-        fout = dest / name
-        shutil.copy2(str(fin), str(fout))
+def _generate(args: argparse.Namespace) -> None:
+    resources = [parse_spec(s) for s in args.specs]
+    extra_env = dict(e.split("=", 1) for e in args.env)
+    registry: Registry[Any] = resources @ Registry()
+    specs = [r.contents for r in registry.values()]
+    compiled = flatten_with_resolver(*specs, resolver=registry.resolver())
+    renderer = Renderer(compiled.decls, extra_env=extra_env)
+    for src, out in args.templates:
+        tpl = Path(src).read_text()
+        Path(out).write_text(renderer.render(tpl))
 
 
 def main() -> None:
@@ -46,29 +65,27 @@ def main() -> None:
     )
 
     # Code generator sub command
-    gen_parser = subparsers.add_parser("generate", help="code generator")
-    gen_parser.add_argument("specs", nargs="+", help="YAML spec files")
+    gen_parser = subparsers.add_parser("generate", help="template renderer")
+    gen_parser.add_argument("specs", nargs="*", help="YAML spec files")
     gen_parser.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Output directory",
+        "--template",
+        nargs=2,
+        action="append",
+        metavar=("TEMPLATE", "OUTPUT"),
+        dest="templates",
+        default=[],
+        help="Template and output filename pair",
     )
-
-    # Runtime only
-    rt_parser = subparsers.add_parser("runtime", help="Emit runtime only")
-    rt_parser.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Output directory",
+    gen_parser.add_argument(
+        "--env",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
+        help="User-defined template variable",
     )
-
-    parser.add_argument(
-        "--runtime",
-        choices=["bundled", "external"],
-        default="bundled",
-        help="Runtime bundling mode (default: bundled)",
+    gen_parser.add_argument(
+        "--prefix",
+        help="Function/type prefix (default: schema_)",
     )
 
     args = parser.parse_args()
@@ -76,11 +93,9 @@ def main() -> None:
         print(_cmake_dir())
     elif args.command == "generate":
         _generate(args)
-    elif args.command == "runtime":
-        _runtime(args)
     else:
         parser.print_help()
-        sys.exit(1)
+        _die("no command specified")
 
 
 if __name__ == "__main__":

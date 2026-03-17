@@ -1,0 +1,15 @@
+{% macro struct(decl) %}
+struct {{ decl.ctype.name }} {
+{% for f in decl.fields %}
+    {{ (f.ctype | qualifier ~ ' ' ~ f.ctype.name) | trim }} {{ f.name }}{{ f.ctype.dims | dimensions }};
+{% endfor %}
+};
+{%- endmacro %}
+
+{% macro union(decl) %}
+union {{ decl.ctype.name }} {
+{% for v in decl.variants %}
+    {{ (v.ctype | qualifier ~ ' ' ~ v.ctype.name) | trim }} {{ v.name }}{{ v.ctype.dims | dimensions }};
+{% endfor %}
+};
+{%- endmacro %}

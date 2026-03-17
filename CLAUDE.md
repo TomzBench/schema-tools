@@ -19,9 +19,10 @@ codegen/
     node/           # Node types, behaviors, locations, refs
     spec/           # Spec structure definitions (OpenAPI 3.1, JSON Schema)
     walk/           # Tree operations (walk, normalize, diff, merge, join)
-    lang/jsmn/      # C code generation (IR types, flatten)
+    lang/jsmn/      # C code generation (IR types, flatten, templates, runtime)
   tests/
     fixtures/       # Test fixtures (specs, templates)
     unit/           # Unit tests
     integration/    # Integration tests
+    e2e/            # Full end to end C integration test (via CMake)
 ```

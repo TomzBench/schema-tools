@@ -1,0 +1,47 @@
+openapi: "3.1.0"
+$id: "forge://e2e/primitives/v0"
+info:
+  title: Every primitive type e2e test
+  version: "0.1.0"
+components:
+  schemas:
+    every_type:
+      type: object
+      x-jsmn-forge-as: every_type
+      required:
+        - p_u8
+        - p_i8
+        - p_u16
+        - p_i16
+        - p_u32
+        - p_i32
+        - p_u64
+        - p_i64
+        - p_bool
+        - p_f32
+        - p_f64
+        - p_str
+        - p_arr
+        - p_vla
+      properties:
+        p_u8:   { type: integer, format: uint8 }
+        p_i8:   { type: integer, format: int8 }
+        p_u16:  { type: integer, format: uint16 }
+        p_i16:  { type: integer, format: int16 }
+        p_u32:  { type: integer, format: uint32 }
+        p_i32:  { type: integer, format: int32 }
+        p_u64:  { type: integer, format: uint64 }
+        p_i64:  { type: integer, format: int64 }
+        p_bool: { type: boolean }
+        p_f32:  { type: number, format: float }
+        p_f64:  { type: number, format: double }
+        p_str:  { type: string, maxLength: 32 }
+        p_arr:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: { type: integer, format: uint32 }
+        p_vla:
+          type: array
+          maxItems: 4
+          items: { type: integer, format: uint32 }

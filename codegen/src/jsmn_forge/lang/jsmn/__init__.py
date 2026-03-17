@@ -1,9 +1,8 @@
 from .ir import CStruct, CType, Dim, Field, Variant
 from .mangle import mangle
 from .render import (
-    RenderConfig,
+    Renderer,
     extend_decls,
-    render,
     resolve_ctype,
     sort_decls,
 )
@@ -13,11 +12,10 @@ __all__ = [
     "CType",
     "Dim",
     "Field",
-    "RenderConfig",
+    "Renderer",
     "Variant",
     "extend_decls",
     "mangle",
-    "render",
     "resolve_ctype",
     "sort_decls",
 ]
