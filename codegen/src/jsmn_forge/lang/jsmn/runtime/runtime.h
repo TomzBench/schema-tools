@@ -118,7 +118,7 @@ rt_decode(const struct rt_schemas *schema,
           jsmntok_t               *toks,
           uint32_t                 ntoks,
           void                    *dst,
-          int                      struct_idx,
+          rt_type_t                type,
           const char              *src,
           uint32_t                 slen);
 

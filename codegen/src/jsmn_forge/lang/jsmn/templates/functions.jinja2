@@ -34,7 +34,7 @@ int32_t
     jsmntok_t *toks,
     uint32_t ntoks)
 {
-    return rt_decode(&{{ schemas }}, toks, ntoks, dst, {{ struct_idx }}, src, slen);
+    return rt_decode(&{{ schemas }}, toks, ntoks, dst, RT_STRUCT({{ struct_idx }}), src, slen);
 }
 
 int32_t

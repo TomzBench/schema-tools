@@ -471,57 +471,36 @@ decode_type(const struct decoder *dec, void *dst, int itok, rt_type_t type)
     }
 }
 
+// TODO: flatten.py filters out top level arrays. we need to fix that
+//       before adding top level array support.
+// ie:   schema_decode_my_vla(struct my_vla*, ...)
+//       schema_decode_my_arr(struct items[4], ...)
+// NOTE: For top level arrays we do not use vla__{name}__n{n} convention
+//       but instead use the declared name per the spec
 int
 rt_decode(const struct rt_schemas *schema,
           jsmntok_t               *toks,
           uint32_t                 ntoks,
           void                    *dst,
-          int                      struct_idx,
+          rt_type_t                type,
           const char              *src,
           uint32_t                 slen)
 {
     int         ret, atoks;
     jsmn_parser parser;
 
-    // Do the parse
     jsmn_init(&parser);
     atoks = jsmn_parse(&parser, src, slen, toks, ntoks);
-
-    // Early return jsmn parser error
     if (atoks < 0) {
-        // atoks <= means error
-        switch ((enum jsmnerr)atoks) {
-        case JSMN_ERROR_NOMEM: // Not enough tokens (should be impossible)
-        case JSMN_ERROR_INVAL: // Bad JSON string
-        case JSMN_ERROR_PART:  // needs more json
-            break;
-        }
-        // Return the error
         return atoks;
     }
-
-    // Early return not a struct
-    if (!(atoks >= 1)) {
+    if (atoks < 1) {
         return RT_ERR_PARTIAL;
     }
 
     struct decoder dec = {.schemas = schema, .json = src, .toks = toks};
-
-    // Call parser
-    if (toks[0].type == JSMN_OBJECT) {
-        ret = decode_struct(&dec, dst, struct_idx, 0);
-        return ret < 0 ? ret : parser.pos;
-    } else if (toks[0].type == JSMN_ARRAY) {
-        // TODO: flatten.py filters out top level arrays. we need to fix that
-        //       before adding top level array support.
-        // ie:   schema_decode_my_vla(struct my_vla*, ...)
-        //       schema_decode_my_arr(struct items[4], ...)
-        // NOTE: For top level arrays we do not use vla__{name}__n{n} convention
-        //       but instead use the declared name per the spec
-        return RT_ERR_TYPE;
-    } else {
-        return RT_ERR_TYPE;
-    }
+    ret = decode_type(&dec, dst, 0, type);
+    return ret < 0 ? ret : parser.pos;
 }
 
 #define cursor_push(_c, _b) ((_c)->ptr[(_c)->pos] = _b)
