@@ -6,7 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urldefrag
 
-from jsmn_forge.lang.jsmn.ir import CDecl, CStruct, CType, Dim, Field
+from jsmn_forge.lang.jsmn.ir import CArray, CDecl, CStruct, CType, Dim, Field
 from jsmn_forge.node import Location
 from jsmn_forge.spec import OPENAPI_3_1, OpenApi31Keys
 from jsmn_forge.walk import Step, walk
@@ -61,16 +61,6 @@ class TypeKey(StrEnum):
 
 # Walking OpenAPI 3.1 key words
 type StepSpec = Step[OpenApi31Keys]
-
-
-# Filter in all object schemas
-def _is_schema(step: StepSpec) -> bool:
-    return (
-        step.kind == "schema_enter"
-        and isinstance(step.value, dict)
-        and step.value.get("type") == "object"
-        and "x-jsmn-forge-as" in step.value
-    )
 
 
 def _follow_ref(
@@ -143,10 +133,22 @@ def _walk_any(
         decls |= {ctype: CStruct(ctype, loc, fields)}
         return FlattenResult(decls, errors)
     elif ty == "array":
-        items = schema.get("items")
-        assert items
         prop_loc = loc.push("items")
-        return _walk_any(items, prop_loc, curr_resolver)
+        items = schema.get("items")
+        if "x-jsmn-forge-as" in schema:
+            ctype = CType(schema["x-jsmn-forge-as"])
+            carr = CArray(
+                ctype=ctype,
+                elem=_seek_ctype(items, prop_loc, curr_resolver),
+                loc=prop_loc,
+                min=schema.get("minItems", 0),
+                max=schema.get("maxItems", 0), # TODO value error
+            )
+            inner = _walk_any(items, prop_loc, curr_resolver)
+            return FlattenResult({**inner.decls, ctype: carr}, inner.errors)
+        else:
+            return _walk_any(items, prop_loc, curr_resolver)
+
     elif "$ref" in schema:
         resolved = _follow_ref(schema, loc, curr_resolver)
         (target_location, contents, target_resolver) = resolved
@@ -165,6 +167,18 @@ def flatten_with_resolver(*specs: Any, resolver: Resolver) -> FlattenResult:
         errors = acc.errors + results.errors
         return FlattenResult(decls, errors)
 
+    # Filter in all object and array schemas
+    def is_schema(step: StepSpec) -> bool:
+        if (
+            step.kind == "schema_enter"
+            and isinstance(step.value, dict)
+            and "x-jsmn-forge-as" in step.value
+            and (ty := step.value.get("type"))
+        ):
+            return ty == "object" or ty == "array"
+        else:
+            return False
+
     init = FlattenResult({}, [])
-    steps = filter(_is_schema, walk(*specs, draft=OPENAPI_3_1))
+    steps = filter(is_schema, walk(*specs, draft=OPENAPI_3_1))
     return reduce(step, steps, init)

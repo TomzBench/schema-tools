@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 from jsmn_forge.lang.jsmn.flatten import flatten_with_resolver
-from jsmn_forge.lang.jsmn.ir import CStruct, CType, Dim
+from jsmn_forge.lang.jsmn.ir import CArray, CStruct, CType, Dim
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
@@ -35,6 +35,9 @@ def test_flatten_collects_all_structs(registry: Registry) -> None:
         CType("deep_array_host"),
         CType("deep_array_entry"),
         CType("deep_array_detail"),
+        CType("top_array"),
+        CType("top_array_item"),
+        CType("top_arr_ref"),
         CType("ref_prop"),
         CType("ref_nested"),
         CType("arr_ref_items"),
@@ -61,3 +64,26 @@ def test_flatten_array_dims(registry: Registry) -> None:
     decl = result.decls[CType("array_host")]
     assert isinstance(decl, CStruct)
     assert decl.fields[0].ctype == CType("array_item", (Dim(0, 10),))
+
+
+def test_flatten_top_level_array_inline(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("top_array")]
+    assert isinstance(decl, CArray)
+    assert decl.elem == CType("top_array_item")
+    assert decl.min == 0
+    assert decl.max == 5
+    # items object also collected as a struct
+    item_decl = result.decls[CType("top_array_item")]
+    assert isinstance(item_decl, CStruct)
+
+
+def test_flatten_top_level_array_ref(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("top_arr_ref")]
+    assert isinstance(decl, CArray)
+    assert decl.elem == CType("target_a")
+    assert decl.min == 0
+    assert decl.max == 8

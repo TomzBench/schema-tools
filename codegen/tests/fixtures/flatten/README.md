@@ -13,11 +13,12 @@ annotated object (`x-jsmn-forge-as`) can be discovered. Combinational keywords
 
 ## `walk_any` branches
 
-| Branch | Trigger                          | Action                                   |
-| ------ | -------------------------------- | ---------------------------------------- |
-| **A**  | `type: object` + `x-jsmn-forge-as` | Record struct, recurse into `properties` |
-| **B**  | `type: array`                    | Follow `items`                           |
-| **C**  | `$ref`                           | Resolve via registry, recurse            |
+| Branch | Trigger                            | Action                                          |
+| ------ | ---------------------------------- | ------------------------------------------------ |
+| **A**  | `type: object` + `x-jsmn-forge-as` | Record struct, recurse into `properties`         |
+| **B**  | `type: array`  + `x-jsmn-forge-as` | Record CArray, recurse into `items`              |
+| **B'** | `type: array`  (no annotation)     | Follow `items` (no decl emitted)                 |
+| **C**  | `$ref`                             | Resolve via registry, recurse                    |
 
 ## Test matrix
 
@@ -29,6 +30,13 @@ annotated object (`x-jsmn-forge-as`) can be discovered. Combinational keywords
 | A→A     | Nested inline property       | `parent`          | `parent`, `parent_child`                                   |
 | A→B→A   | Inline array of objects      | `array_host`      | `array_host`, `array_item`                                 |
 | A→B→A→A | Nested object in array items | `deep_array_host` | `deep_array_host`, `deep_array_entry`, `deep_array_detail` |
+
+### Top-level arrays (spec_a only)
+
+| Path  | Description                        | Entry schema    | Discovered names                |
+| ----- | ---------------------------------- | --------------- | ------------------------------- |
+| B→A   | Top-level array of inline objects  | `top_array`     | `top_array`, `top_array_item`   |
+| B→C→A | Top-level array → $ref → object    | `top_arr_ref`   | `top_arr_ref`, `target_a`       |
 
 ### Cross-spec $ref (spec_a → spec_b)
 

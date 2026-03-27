@@ -64,6 +64,31 @@ components:
                     type: integer
                     format: uint16
 
+    # ── Top-level array cases ────────────────────────────────────────
+
+    # Path B→A — top-level array of inline objects
+    top_array:
+      type: array
+      x-jsmn-forge-as: top_array
+      minItems: 0
+      maxItems: 5
+      items:
+        type: object
+        x-jsmn-forge-as: top_array_item
+        properties:
+          id:
+            type: integer
+            format: uint32
+
+    # Path B→C→A — top-level array with $ref items → object
+    top_arr_ref:
+      type: array
+      x-jsmn-forge-as: top_arr_ref
+      minItems: 0
+      maxItems: 8
+      items:
+        $ref: "forge://test/targets/v0#/components/schemas/target_a"
+
     # ── $ref cases ──────────────────────────────────────────────────
 
     # Path A→C→A — property → $ref → object
