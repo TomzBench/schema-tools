@@ -471,12 +471,6 @@ decode_type(const struct decoder *dec, void *dst, int itok, rt_type_t type)
     }
 }
 
-// TODO: flatten.py filters out top level arrays. we need to fix that
-//       before adding top level array support.
-// ie:   schema_decode_my_vla(struct my_vla*, ...)
-//       schema_decode_my_arr(struct items[4], ...)
-// NOTE: For top level arrays we do not use vla__{name}__n{n} convention
-//       but instead use the declared name per the spec
 int
 rt_decode(const struct rt_schemas *schema,
           jsmntok_t               *toks,
@@ -755,13 +749,13 @@ encode_type(struct encoder *enc, void *src, rt_type_t type)
 }
 
 int
-rt_encode_struct(const struct rt_schemas *schemas,
-                 uint8_t                 *dst,
-                 uint32_t                 dlen,
-                 const void              *src,
-                 int                      idx)
+rt_encode(const struct rt_schemas *schemas,
+          uint8_t                 *dst,
+          uint32_t                 dlen,
+          const void              *src,
+          rt_type_t                type)
 {
     struct cursor  cursor = {.ptr = dst, .pos = 0, .len = dlen};
     struct encoder enc = {.cursor = &cursor, .schemas = schemas};
-    return encode_struct(&enc, src, idx);
+    return encode_type(&enc, (void *)src, type);
 }

@@ -11,6 +11,7 @@ from .descriptor import (
     StructDescriptor,
 )
 from .ir import (
+    CArray,
     CDecl,
     CEnum,
     CStruct,
@@ -52,6 +53,7 @@ _ARRAY_KINDS: dict[ArrayKind, str] = {
 
 def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
     cdecl_index = {v.ctype.name: v for v in user_decls}
+    array_names = {v.ctype.name for v in user_decls if isinstance(v, CArray)}
 
     def is_struct_decl(decl: CDecl) -> bool:
         return isinstance(decl, CStruct)
@@ -61,6 +63,10 @@ def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
 
     def is_enum_decl(decl: CDecl) -> bool:
         return isinstance(decl, CEnum)
+
+    def is_array_decl(decl: CDecl | CType) -> bool:
+        name = decl.name if isinstance(decl, CType) else decl.ctype.name
+        return name in array_names
 
     def is_user_decl(decl: CDecl | CType) -> bool:
         t = decl.name if isinstance(decl, CType) else decl.ctype.name
@@ -73,6 +79,7 @@ def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
         "struct_decl": is_struct_decl,
         "union_decl": is_union_decl,
         "enum_decl": is_enum_decl,
+        "array_decl": is_array_decl,
         "user_decl": is_user_decl,
         "union_ctype": is_union_ctype,
     }
@@ -98,6 +105,8 @@ def filters(
             return ""
         elif isinstance(qual, CUnion):
             return "union"
+        elif isinstance(qual, CArray):
+            return ""
         else:
             return "struct"
 

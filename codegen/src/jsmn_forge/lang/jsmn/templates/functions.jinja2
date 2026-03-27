@@ -1,23 +1,23 @@
 {# --- Prototype declarations --- #}
-{% macro decode_prototype(prefix, name) %}
+{% macro decode_prototype(prefix, name, qual="") %}
 int32_t {{ prefix }}decode_{{ name }}_tok(
-    struct {{ name }} *dst,
+    {{ (qual ~ ' ' ~ name) | trim }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks);
 
 int32_t {{ prefix }}decode_{{ name }}(
-    struct {{ name }} *dst,
+    {{ (qual ~ ' ' ~ name) | trim }} *dst,
     const char *src,
     uint32_t slen);
 {%- endmacro %}
 
-{% macro encode_prototype(prefix, name) %}
+{% macro encode_prototype(prefix, name, qual="") %}
 int32_t {{ prefix }}encode_{{ name }}(
     uint8_t *dst,
     uint32_t dlen,
-    const struct {{ name }} *src);
+    const {{ (qual ~ ' ' ~ name) | trim }} *src);
 {%- endmacro %}
 
 {% macro encode_len(prefix) %}
@@ -25,21 +25,21 @@ uint32_t {{ prefix }}encode_len_prototype(int idx, struct rt_schemas *schemas);
 {%- endmacro %}
 
 {# --- Implementation --- #}
-{% macro decode(prefix, name, ntoks, struct_idx, schemas) %}
+{% macro decode(prefix, name, ntoks, type_expr, schemas, qual="") %}
 int32_t
 {{ prefix }}decode_{{ name }}_tok(
-    struct {{ name }} *dst,
+    {{ (qual ~ ' ' ~ name) | trim }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks)
 {
-    return rt_decode(&{{ schemas }}, toks, ntoks, dst, RT_STRUCT({{ struct_idx }}), src, slen);
+    return rt_decode(&{{ schemas }}, toks, ntoks, dst, {{ type_expr }}, src, slen);
 }
 
 int32_t
 {{ prefix }}decode_{{ name }}(
-    struct {{ name }} *dst,
+    {{ (qual ~ ' ' ~ name) | trim }} *dst,
     const char *src,
     uint32_t slen)
 {
@@ -48,18 +48,18 @@ int32_t
 }
 {%- endmacro %}
 
-{% macro encode(prefix, name, idx, schemas) %}
+{% macro encode(prefix, name, type_expr, schemas, qual="") %}
 int32_t
 {{ prefix }}encode_{{ name }}(
     uint8_t *dst,
     uint32_t dlen,
-    const struct {{ name }} *src)
+    const {{ (qual ~ ' ' ~ name) | trim }} *src)
 {
-	return rt_encode_struct(&{{ schemas }}, dst, dlen, src, {{ idx }});
+	return rt_encode(&{{ schemas }}, dst, dlen, src, {{ type_expr }});
 }
 {%- endmacro %}
 
-{% macro encode_len(prefix, schemas) %}
+{% macro encode_len_impl(prefix, schemas) %}
 uint32_t
 {{ prefix }}encode_len(int idx, struct rt_schemas *schemas)
 {

@@ -25,7 +25,7 @@ from .descriptor import (
     sum_ntoks_with_cache,
 )
 from .filters import filters, tests
-from .ir import CDecl, CStruct, CType, CUnion, Field, FixedDims
+from .ir import CArray, CDecl, CStruct, CType, CUnion, Dim, Field, FixedDims
 from .mangle import dim_walk, make_maybe, make_optional, make_vla, mangle
 
 if TYPE_CHECKING:
@@ -66,6 +66,11 @@ def sort_decls(decls: dict[CType, CDecl]) -> list[CDecl]:
                     for v in prop.ctype:
                         if v.ctype in decls:
                             walker(decls[v.ctype])
+            cache.add(curr.ctype)
+            ret.append(curr)
+        elif isinstance(curr, CArray):
+            if curr.elem in decls:
+                walker(decls[curr.elem])
             cache.add(curr.ctype)
             ret.append(curr)
         else:
@@ -110,6 +115,16 @@ def extend_decls(ordered: list[CDecl]) -> list[CDecl]:
                     else:
                         fields.append(Field(f.name, resolved, f.required))
             emit(CStruct(d.ctype, d.loc, fields))
+        elif isinstance(d, CArray):
+            if d.min != d.max:  # VLA — emit wrapper struct with user's name
+                resolved_elem = resolve_ctype(d.elem)
+                spec = CType(resolved_elem.name, (Dim(d.min, d.max),))
+                for group, inner_spec in dim_walk(d.elem):
+                    if not isinstance(group, FixedDims):
+                        emit(make_vla(inner_spec, d.loc))
+                emit(make_vla(spec, d.loc, name=d.ctype.name))
+            else:  # Fixed — pass through as CArray for typedef rendering
+                emit(d)
         elif isinstance(d, CUnion):
             emit(d)
         else:
@@ -123,14 +138,14 @@ def build_tables(
     structs: list[StructDescriptor] = []
     fields: list[FieldDescriptor] = []
     arrays, add_array = add_array_with_cache()
-    # NOTE ntoks/len summers are incorrect w/ Optional type wrappers and VLA 
-    #      type wrappers. Synthetic wrapper types are helpers which are 
+    # NOTE ntoks/len summers are incorrect w/ Optional type wrappers and VLA
+    #      type wrappers. Synthetic wrapper types are helpers which are
     #      not represented on the wire. For example, we represent an optional
     #      field with a "present" bit. Our current calculations assume the wire
     #      transmits the present field.
-    #      To fix, mangle.py should tag the CStruct vla's as a CVla, and the 
+    #      To fix, mangle.py should tag the CStruct vla's as a CVla, and the
     #      Optional maybe as CMaybe, and inherit CStruct and CUnion respectively.
-    #      This will behave as expected everywhere, and summers can test if its 
+    #      This will behave as expected everywhere, and summers can test if its
     #      synthetic or not.
     #      These synthetic types should declare in mangle.py. The summers should
     #      Move into it's own file so no circulars. (ie: calculate.py)
@@ -138,7 +153,9 @@ def build_tables(
     sum_encode_len = sum_encode_len_with_cache()
     strings = Strings()
 
-    def resolve_array(ctype: CType, loc: Location) -> Key:
+    def resolve_array(
+        ctype: CType, loc: Location, *, name: str | None = None
+    ) -> Key:
         """Walk dims inner-to-outer, creating/reusing array descriptors."""
         ref: Key | CType = CType(ctype.name)  # bare leaf
         for group, spec in dim_walk(ctype):
@@ -152,11 +169,8 @@ def build_tables(
                 arr = ArrayDescriptor(
                     key=Key(Table.ARRAY, len(arrays)),
                     loc=loc,
-                    # NOTE resolve_array synthetically created types are not
-                    #      ordered and memos are not guarenteed available when
-                    #      accounting the ntoks and encode_len
-                    ntoks=0,
-                    encode_len=0,
+                    ntoks=sum_ntoks(ct),
+                    encode_len=sum_encode_len(ct),
                     ctype=resolve_ctype(ct),
                     kind=kind,
                     max=mx,
@@ -164,6 +178,10 @@ def build_tables(
                 )
                 ref = add_array(arr)
         assert isinstance(ref, Key)
+        # NOTE that the top level array might be "named" explicitly, so we use that name for the ctype
+        #      (ref.pos) points to the top level (lastly iterated) array
+        if name is not None:
+            arrays[ref.pos].ctype = CType(name)
         return ref
 
     for d in ordered:
@@ -198,6 +216,9 @@ def build_tables(
                     type_ref=type_ref,
                 )
                 fields.append(desc)
+        elif isinstance(d, CArray):
+            spec = CType(d.elem.name, (Dim(d.min, d.max), *d.elem.dims))
+            resolve_array(spec, d.loc, name=d.ctype.name)
     table = {d.key: d for d in [*structs, *fields, *arrays]}
     return strings, table
 

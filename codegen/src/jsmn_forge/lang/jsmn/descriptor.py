@@ -29,6 +29,7 @@ from typing import NamedTuple
 from jsmn_forge.node import Location
 
 from .ir import CArray, CStruct, CType, CUnion, Dim, Field, FixedDims, StringDim
+from .mangle import mangle
 
 
 class EscapeMode(Enum):
@@ -152,10 +153,13 @@ def sum_ntoks_with_cache() -> Callable[[CStruct | CType], int]:
     def _weight(ctype: CType) -> int:
         if ctype.name == "char":
             return 1
-        else:
-            base = 1 if ctype.is_primitive else memo[ctype.name]
+        base = 1 if ctype.is_primitive else memo[ctype.name]
+        if ctype.dims:
             for dim in reversed(ctype.dims):
                 base = 1 + dim.max * base
+            memo[mangle(ctype)] = base
+            return base
+        else:
             return base
 
     def _accumulate_ntoks(acc: int, field: Field) -> int:
@@ -179,7 +183,7 @@ def sum_ntoks_with_cache() -> Callable[[CStruct | CType], int]:
             memo[s.ctype.name] = ntoks
             return ntoks
         else:
-            return memo[s.name] if s.name in memo else _weight(s)
+            return _weight(s)
 
     return sum_ntoks
 
@@ -219,10 +223,14 @@ def sum_encode_len_with_cache(
         else:
             base = memo[ctype.name]
             dims = ctype.dims
-        # [elem,elem,...] = 2 + N*elem + (N-1) commas
-        for dim in reversed(dims):
-            base = 2 + dim.max * base + max(0, dim.max - 1)
-        return base
+        if dims:
+            # [elem,elem,...] = 2 + N*elem + (N-1) commas
+            for dim in reversed(dims):
+                base = 2 + dim.max * base + max(0, dim.max - 1)
+            memo[mangle(ctype)] = base
+            return base
+        else:
+            return base
 
     def _accumulate(acc: int, field: Field) -> int:
         # "name":val = len(name) + 2 quotes + 1 colon + val
@@ -251,7 +259,7 @@ def sum_encode_len_with_cache(
             memo[s.ctype.name] = nbytes
             return nbytes
         else:
-            return memo[s.name] if s.name in memo else _weight(s)
+            return _weight(s)
 
     return sum_encode_len
 

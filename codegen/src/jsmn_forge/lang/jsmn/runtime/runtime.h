@@ -123,11 +123,11 @@ rt_decode(const struct rt_schemas *schema,
           uint32_t                 slen);
 
 int
-rt_encode_struct(const struct rt_schemas *schemas,
-                 uint8_t                 *dst,
-                 uint32_t                 dlen,
-                 const void              *src,
-                 int                      idx);
+rt_encode(const struct rt_schemas *schemas,
+          uint8_t                 *dst,
+          uint32_t                 dlen,
+          const void              *src,
+          rt_type_t                type);
 
 #ifdef __cplusplus
 }

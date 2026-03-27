@@ -13,3 +13,7 @@ union {{ decl.ctype.name }} {
 {% endfor %}
 };
 {%- endmacro %}
+
+{% macro array_typedef(decl) %}
+typedef {{ (decl.elem | qualifier ~ ' ' ~ decl.elem.name) | trim }} {{ decl.ctype.name }}[{{ decl.max }}];
+{%- endmacro %}

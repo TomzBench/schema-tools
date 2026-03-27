@@ -54,11 +54,11 @@ def make_maybe(inner: CType, loc: Location) -> CUnion:
     return CUnion(ctype, loc, [Variant("value", inner)])
 
 
-def make_vla(ctype: CType, loc: Location) -> CStruct:
+def make_vla(ctype: CType, loc: Location, *, name: str | None = None) -> CStruct:
     cap = ctype.dims[0].max
     rest = ctype.dims[1:]
     return CStruct(
-        CType(mangle(ctype)),
+        CType(name if name is not None else mangle(ctype)),
         loc,
         [
             Field("len", CType("uint32_t")),

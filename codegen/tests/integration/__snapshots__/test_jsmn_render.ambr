@@ -608,11 +608,11 @@
             uint32_t                 slen);
   
   int
-  rt_encode_struct(const struct rt_schemas *schemas,
-                   uint8_t                 *dst,
-                   uint32_t                 dlen,
-                   const void              *src,
-                   int                      idx);
+  rt_encode(const struct rt_schemas *schemas,
+            uint8_t                 *dst,
+            uint32_t                 dlen,
+            const void              *src,
+            rt_type_t                type);
   
   #ifdef __cplusplus
   }
@@ -1090,12 +1090,6 @@
       }
   }
   
-  // TODO: flatten.py filters out top level arrays. we need to fix that
-  //       before adding top level array support.
-  // ie:   schema_decode_my_vla(struct my_vla*, ...)
-  //       schema_decode_my_arr(struct items[4], ...)
-  // NOTE: For top level arrays we do not use vla__{name}__n{n} convention
-  //       but instead use the declared name per the spec
   int
   rt_decode(const struct rt_schemas *schema,
             jsmntok_t               *toks,
@@ -1374,15 +1368,15 @@
   }
   
   int
-  rt_encode_struct(const struct rt_schemas *schemas,
-                   uint8_t                 *dst,
-                   uint32_t                 dlen,
-                   const void              *src,
-                   int                      idx)
+  rt_encode(const struct rt_schemas *schemas,
+            uint8_t                 *dst,
+            uint32_t                 dlen,
+            const void              *src,
+            rt_type_t                type)
   {
       struct cursor  cursor = {.ptr = dst, .pos = 0, .len = dlen};
       struct encoder enc = {.cursor = &cursor, .schemas = schemas};
-      return encode_struct(&enc, src, idx);
+      return encode_type(&enc, (void *)src, type);
   }
   
   '''
@@ -1691,7 +1685,7 @@
       uint32_t dlen,
       const struct every_type *src)
   {
-  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_EVERY_TYPE_KEY);
+  	return rt_encode(&schema_schemas, dst, dlen, src, RT_STRUCT(SCHEMA_EVERY_TYPE_KEY));
   }
   
   
@@ -1802,7 +1796,7 @@
       uint32_t dlen,
       const struct vla_combos *src)
   {
-  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_VLA_COMBOS_KEY);
+  	return rt_encode(&schema_schemas, dst, dlen, src, RT_STRUCT(SCHEMA_VLA_COMBOS_KEY));
   }
   
   
@@ -1895,7 +1889,7 @@
       uint32_t dlen,
       const struct child *src)
   {
-  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_CHILD_KEY);
+  	return rt_encode(&schema_schemas, dst, dlen, src, RT_STRUCT(SCHEMA_CHILD_KEY));
   }
   
   int32_t
@@ -1925,7 +1919,7 @@
       uint32_t dlen,
       const struct parent *src)
   {
-  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_PARENT_KEY);
+  	return rt_encode(&schema_schemas, dst, dlen, src, RT_STRUCT(SCHEMA_PARENT_KEY));
   }
   
   int32_t
@@ -1955,7 +1949,7 @@
       uint32_t dlen,
       const struct sibling *src)
   {
-  	return rt_encode_struct(&schema_schemas, dst, dlen, src, SCHEMA_SIBLING_KEY);
+  	return rt_encode(&schema_schemas, dst, dlen, src, RT_STRUCT(SCHEMA_SIBLING_KEY));
   }
   
   

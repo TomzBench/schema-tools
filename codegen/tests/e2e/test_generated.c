@@ -178,7 +178,7 @@ test_container_roundtrip(void)
 
 /* ── Arrays ────────────────────────────────────────────────────────── */
 
-#define POINT_INIT(idx, _) { .x = (idx) + 1, .y = ((idx) + 1) * 10 }
+#define POINT_INIT(idx, _) {.x = (idx) + 1, .y = ((idx) + 1) * 10}
 
 /* array_combos layers: inner=3, middle=4, outer=5
  * NOTE: VLA/LISTIFY can't nest (preprocessor blue-paint rule), so these
@@ -244,9 +244,20 @@ test_array_combos_roundtrip(void)
     TEST_ASSERT_EQUAL_UINT32(3, dec.d_fff[0][0][2]);
 }
 
+void
+test_top_vla_points_roundtrip(void)
+{
+    struct top_vla_points dec = {0}, x = VLA(3, LISTIFY(3, POINT_INIT, (, )));
+    ROUNDTRIP(top_vla_points, TOP_VLA_POINTS, &x, &dec);
+    TEST_ASSERT_EQUAL_UINT32(x.len, dec.len);
+    for (uint32_t i = 0; i < x.len; i++) {
+        assert_point_eq(&x.items[i], &dec.items[i]);
+    }
+}
+
 /* ── Optionals ─────────────────────────────────────────────────────── */
 
-#define DETAIL_INIT { .code = 404, .message = "not found" }
+#define DETAIL_INIT {.code = 404, .message = "not found"}
 
 static void
 assert_detail_eq(const struct detail *a, const struct detail *b)
@@ -386,6 +397,7 @@ main(void)
     RUN_TEST(test_container_roundtrip);
     RUN_TEST(test_array_of_objects_roundtrip);
     RUN_TEST(test_array_combos_roundtrip);
+    RUN_TEST(test_top_vla_points_roundtrip);
     RUN_TEST(test_detail_roundtrip);
     RUN_TEST(test_record_required_only);
     RUN_TEST(test_record_all_present);

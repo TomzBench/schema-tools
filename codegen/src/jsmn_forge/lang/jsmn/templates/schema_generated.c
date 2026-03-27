@@ -21,11 +21,20 @@ static const struct rt_schemas {{ prefix }}schemas = {
     .structs = {{ prefix }}structs,
 };
 
-{# --- Function implementations --- #}
+{# --- Struct function implementations --- #}
 {% for s in struct_descriptors if s is user_decl %}
 {% set idx = prefix | upper ~ s.ctype.name | upper ~ "_KEY" -%}
-{{ fn.decode(prefix, s.ctype.name, s.ntoks, idx, prefix ~ "schemas") }}
+{% set type_expr = "RT_STRUCT(" ~ idx ~ ")" -%}
+{{ fn.decode(prefix, s.ctype.name, s.ntoks, type_expr, prefix ~ "schemas", "struct") }}
 
-{{ fn.encode(prefix, s.ctype.name, idx, prefix ~ "schemas") }}
+{{ fn.encode(prefix, s.ctype.name, type_expr, prefix ~ "schemas", "struct") }}
+
+{% endfor %}
+{# --- Array function implementations --- #}
+{% for a in descriptors | arrays if a is array_decl %}
+{% set type_expr = "RT_ARRAY(" ~ a.key.pos ~ ")" -%}
+{{ fn.decode(prefix, a.ctype.name, a.ntoks, type_expr, prefix ~ "schemas", a.ctype | qualifier) }}
+
+{{ fn.encode(prefix, a.ctype.name, type_expr, prefix ~ "schemas", a.ctype | qualifier) }}
 
 {% endfor %}

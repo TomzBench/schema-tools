@@ -129,6 +129,14 @@ components:
               maxItems: 3
               items: { type: integer, format: uint32 }
 
+    # Top-level VLA of structs
+    top_vla_points:
+      type: array
+      x-jsmn-forge-as: top_vla_points
+      maxItems: 8
+      items:
+        $ref: "forge://e2e/arrays/v0#/components/schemas/point"
+
     # Arrays of objects — fixed and VLA
     array_of_objects:
       type: object
