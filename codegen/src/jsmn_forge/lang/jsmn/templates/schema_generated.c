@@ -47,6 +47,29 @@ static const struct rt_schemas {{ prefix }}schemas = {
     .structs = {{ prefix }}structs,
 };
 
+{# --- Polymorphic encode/decode --- #}
+int32_t
+{{ prefix }}decode(
+    jsmntok_t *toks,
+    uint32_t ntoks,
+    void *dst,
+    rt_type_t type,
+    const char *src,
+    uint32_t slen)
+{
+    return rt_decode(&{{ prefix ~ "schemas" }}, toks, ntoks, dst, type, src, slen);
+}
+
+int32_t
+{{ prefix }}encode(
+    uint8_t *dst,
+    uint32_t dlen,
+    const void *src,
+    rt_type_t type)
+{
+	return rt_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, type);
+}
+
 {# --- Struct Loop --- #}
 {% for s in struct_descriptors if s is user_decl %}
 {% set idx = prefix | upper ~ s.ctype.name | upper ~ "_KEY" -%}
@@ -61,7 +84,7 @@ int32_t
     jsmntok_t *toks,
     uint32_t ntoks)
 {
-    return rt_decode(&{{ prefix ~ "schemas" }}, toks, ntoks, dst, {{ type_expr }}, src, slen);
+    return {{ prefix }}decode(toks, ntoks, dst, {{ type_expr }}, src, slen);
 }
 
 int32_t
@@ -81,7 +104,7 @@ int32_t
     uint32_t dlen,
     const {{ ("struct" ~ ' ' ~ s.ctype.name) | trim }} *src)
 {
-	return rt_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, {{ type_expr }});
+	return {{ prefix }}encode(dst, dlen, src, {{ type_expr }});
 }
 
 {% endfor -%}
@@ -99,7 +122,7 @@ int32_t
     jsmntok_t *toks,
     uint32_t ntoks)
 {
-    return rt_decode(&{{ prefix ~ "schemas" }}, toks, ntoks, dst, {{ type_expr }}, src, slen);
+    return {{ prefix }}decode(toks, ntoks, dst, {{ type_expr }}, src, slen);
 }
 
 {# --- Array Decode Implementation --- #}
@@ -120,7 +143,7 @@ int32_t
     uint32_t dlen,
     const {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *src)
 {
-	return rt_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, {{ type_expr }});
+	return {{ prefix }}encode(dst, dlen, src, {{ type_expr }});
 }
 
 {% endfor %}

@@ -24,6 +24,21 @@ typedef {{ (decl.elem | qualifier ~ ' ' ~ decl.elem.name) | trim }} {{ decl.ctyp
 {% endif +%}
 {% endfor -%}
 
+{# --- Polymorphic encode/decode --- #}
+int32_t {{ prefix }}decode(
+    jsmntok_t *toks,
+    uint32_t ntoks,
+    void *dst,
+    rt_type_t type,
+    const char *src,
+    uint32_t slen);
+
+int32_t {{ prefix }}encode(
+    uint8_t *dst,
+    uint32_t dlen,
+    const void *src,
+    rt_type_t type);
+
 {# --- Prototype declarations --- #}
 {% for decl in declarations %}
 {% if decl is struct_decl and decl is user_decl and not decl is array_decl %}
