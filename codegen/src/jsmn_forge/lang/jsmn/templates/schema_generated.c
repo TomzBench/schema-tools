@@ -1,18 +1,44 @@
-{% import 'tables.jinja2' as tables -%}
 {% import 'functions.jinja2' as fn -%}
 {% set struct_descriptors = descriptors | structs -%}
 {% set array_descriptors = descriptors | arrays -%}
 {% set field_descriptors = descriptors | fields -%}
 
-{{ tables.strings(prefix ~ "strings", strings) }}
+{# --- Strings --- #}
+static const char {{ prefix ~ "strings"}}[] =
+{% for offset, name in strings %}
+    "{{ name }}\0" /* {{ offset }} */
+{% endfor -%}
+;
 
-{{ tables.arrays(prefix ~ "arrays", array_descriptors) }}
+{# --- Array Descriptors --- #}
+static const struct rt_array {{ prefix ~ "arrays" }}[] = {
+{% for a in array_descriptors %}
+    /* [{{ loop.index0 }}] {{ a | comment }} */
+    { {{ a | array_kind }}, 0, {{ a.max }}, {{ a | elem_size }}, {{ a | elem_expr }} },
+{% endfor -%}
+};
 
-{{ tables.fields(prefix ~ "fields", field_descriptors) }}
+{# --- Field Descriptors --- #}
+static const struct rt_field {{ prefix ~ "fields" }}[] = {
+{% for f in field_descriptors %}
+    /* [{{ loop.index0 }}] {{ f | comment }} */
+    { {{ f | name_offset }}, {{ f | value_offset }}, {{ f | present_offset }}, {{ f | type_expr }} },
+{% endfor -%}
+};
 
-{{ tables.structs(prefix ~ "structs", struct_descriptors) }}
+{# --- Struct Descriptors --- #}
+static const struct rt_struct {{ prefix ~ "structs" }}[] = {
+{% for s in struct_descriptors %}
+    /* [{{ loop.index0 }}] {{ s | comment }} */
+    { {{ s.nfields }}, 0, {{ s | size_expr }}, {{ s.ntoks }}, {{ s.field0 }} },
+{% endfor -%}
+};
 
-{{ tables.keys(prefix, struct_descriptors) }}
+{# --- Struct Keys --- #}
+{% for d in struct_descriptors %}
+#define {{ prefix | upper }}{{ d.ctype.name | upper }}_KEY {{ loop.index0 }}
+{% endfor %}
+
 
 static const struct rt_schemas {{ prefix }}schemas = {
     .names   = {{ prefix }}strings,
