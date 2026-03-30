@@ -1,10 +1,10 @@
-# Jsmn Forge
+# Schema Tools
 
 ## Intro
 
-jsmn-forge is a code generation project. jsmn-forge generates code by crawling
-OpenAPI specifications and AsyncAPI specifications for "JSON Schemas". Code
-generation must be explicitly declared via OpenAPI and AsyncAPI extension.
+schema-tools is a code generation project. schema-tools generates code by
+crawling OpenAPI specifications and AsyncAPI specifications for "JSON Schemas".
+Code generation must be explicitly declared via OpenAPI and AsyncAPI extension.
 
 More details are in the design document. You should only need to consult the
 design document when you are assigned a task.
@@ -32,7 +32,7 @@ have a 30-second conversation than undo a bad design later.
 
 ```
 codegen/
-  src/jsmn_forge/
+  src/schema_tools/
     cli.py          # CLI entry point
     bundle.py       # Bundle logic for code generation
     node/           # Node types, behaviors, locations, refs

@@ -17,7 +17,7 @@ paths:
 components:
   schemas:
     auth_token:
-      x-jsmn-forge-as: "${id}"
+      x-st-generate: "${id}"
       type: object
       required:
         - token

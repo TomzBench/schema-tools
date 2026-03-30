@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jsmn_forge.lang.jsmn.flatten import flatten_with_resolver
-from jsmn_forge.lang.jsmn.ir import CArray, CStruct, CType, Dim
+from schema_tools.lang.jsmn.flatten import flatten_with_resolver
+from schema_tools.lang.jsmn.ir import CArray, CStruct, CType, Dim
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML

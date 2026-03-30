@@ -20,16 +20,16 @@ tearDown(void)
 
 // clang-format off
 #define ROUNDTRIP(type, TYPE, src, dec)                                         \
-    uint8_t rt_j1_[SCHEMA_##TYPE##_LEN];                                       \
-    uint8_t rt_j2_[SCHEMA_##TYPE##_LEN];                                       \
-    int32_t rt_n1_ = schema_encode_##type(rt_j1_, sizeof(rt_j1_), (src));      \
-    TEST_ASSERT_GREATER_THAN_INT(0, rt_n1_);                                   \
-    int32_t rt_nd_ = schema_decode_##type(                                     \
-        (dec), (const char *)rt_j1_, (uint32_t)rt_n1_);                        \
-    TEST_ASSERT_EQUAL_INT(rt_n1_, rt_nd_);                                     \
-    int32_t rt_n2_ = schema_encode_##type(rt_j2_, sizeof(rt_j2_), (dec));      \
-    TEST_ASSERT_EQUAL_INT(rt_n1_, rt_n2_);                                     \
-    TEST_ASSERT_EQUAL_MEMORY(rt_j1_, rt_j2_, rt_n1_)
+    uint8_t st_j1_[SCHEMA_##TYPE##_LEN];                                       \
+    uint8_t st_j2_[SCHEMA_##TYPE##_LEN];                                       \
+    int32_t st_n1_ = schema_encode_##type(st_j1_, sizeof(st_j1_), (src));      \
+    TEST_ASSERT_GREATER_THAN_INT(0, st_n1_);                                   \
+    int32_t st_nd_ = schema_decode_##type(                                     \
+        (dec), (const char *)st_j1_, (uint32_t)st_n1_);                        \
+    TEST_ASSERT_EQUAL_INT(st_n1_, st_nd_);                                     \
+    int32_t st_n2_ = schema_encode_##type(st_j2_, sizeof(st_j2_), (dec));      \
+    TEST_ASSERT_EQUAL_INT(st_n1_, st_n2_);                                     \
+    TEST_ASSERT_EQUAL_MEMORY(st_j1_, st_j2_, st_n1_)
 // clang-format on
 
 /* ── Primitives ────────────────────────────────────────────────────── */
@@ -353,7 +353,7 @@ test_err_missing_required(void)
     struct point dec = {0};
     const char   json[] = "{\"x\":1}";
     int32_t      ret = schema_decode_point(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(RT_ERR_REQUIRED, ret);
+    TEST_ASSERT_EQUAL_INT(ST_ERR_REQUIRED, ret);
 }
 
 void
@@ -362,7 +362,7 @@ test_err_type_mismatch(void)
     struct point dec = {0};
     const char   json[] = "[1,2]";
     int32_t      ret = schema_decode_point(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(RT_ERR_TYPE, ret);
+    TEST_ASSERT_EQUAL_INT(ST_ERR_TYPE, ret);
 }
 
 void
@@ -372,7 +372,7 @@ test_err_string_too_long(void)
     /* 25 chars, exceeds maxLength 24 */
     const char json[] = "{\"label\":\"abcdefghijklmnopqrstuvwxy\"}";
     int32_t    ret = schema_decode_tag(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(RT_ERR_STR_LENGTH, ret);
+    TEST_ASSERT_EQUAL_INT(ST_ERR_STR_LENGTH, ret);
 }
 
 void
@@ -381,7 +381,7 @@ test_err_buffer_too_small(void)
     struct point x = {.x = 1, .y = 2};
     uint8_t      buf[2];
     int32_t      ret = schema_encode_point(buf, sizeof(buf), &x);
-    TEST_ASSERT_EQUAL_INT(RT_ERR_BUFFER, ret);
+    TEST_ASSERT_EQUAL_INT(ST_ERR_BUFFER, ret);
 }
 
 /* ── main ──────────────────────────────────────────────────────────── */

@@ -10,7 +10,7 @@ components:
     # Path A — top-level object
     standalone:
       type: object
-      x-jsmn-forge-as: standalone
+      x-st-generate: standalone
       properties:
         value:
           type: integer
@@ -19,11 +19,11 @@ components:
     # Path A→A — nested inline property
     parent:
       type: object
-      x-jsmn-forge-as: parent
+      x-st-generate: parent
       properties:
         child:
           type: object
-          x-jsmn-forge-as: parent_child
+          x-st-generate: parent_child
           properties:
             flag:
               type: boolean
@@ -31,14 +31,14 @@ components:
     # Path A→B→A — inline array of objects
     array_host:
       type: object
-      x-jsmn-forge-as: array_host
+      x-st-generate: array_host
       properties:
         records:
           type: array
           maxItems: 10
           items:
             type: object
-            x-jsmn-forge-as: array_item
+            x-st-generate: array_item
             properties:
               id:
                 type: integer
@@ -47,18 +47,18 @@ components:
     # Path A→B→A→A — nested object in array items
     deep_array_host:
       type: object
-      x-jsmn-forge-as: deep_array_host
+      x-st-generate: deep_array_host
       properties:
         entries:
           type: array
           maxItems: 5
           items:
             type: object
-            x-jsmn-forge-as: deep_array_entry
+            x-st-generate: deep_array_entry
             properties:
               detail:
                 type: object
-                x-jsmn-forge-as: deep_array_detail
+                x-st-generate: deep_array_detail
                 properties:
                   code:
                     type: integer
@@ -69,12 +69,12 @@ components:
     # Path B→A — top-level array of inline objects
     top_array:
       type: array
-      x-jsmn-forge-as: top_array
+      x-st-generate: top_array
       minItems: 0
       maxItems: 5
       items:
         type: object
-        x-jsmn-forge-as: top_array_item
+        x-st-generate: top_array_item
         properties:
           id:
             type: integer
@@ -83,7 +83,7 @@ components:
     # Path B→C→A — top-level array with $ref items → object
     top_arr_ref:
       type: array
-      x-jsmn-forge-as: top_arr_ref
+      x-st-generate: top_arr_ref
       minItems: 0
       maxItems: 8
       items:
@@ -94,7 +94,7 @@ components:
     # Path A→C→A — property → $ref → object
     ref_prop:
       type: object
-      x-jsmn-forge-as: ref_prop
+      x-st-generate: ref_prop
       properties:
         linked:
           $ref: "forge://test/targets/v0#/components/schemas/target_a"
@@ -102,7 +102,7 @@ components:
     # Path A→C→A→A — property → $ref → object with nested child
     ref_nested:
       type: object
-      x-jsmn-forge-as: ref_nested
+      x-st-generate: ref_nested
       properties:
         linked:
           $ref: "forge://test/targets/v0#/components/schemas/target_b"
@@ -110,7 +110,7 @@ components:
     # Path A→B→C→A — array items → $ref → object
     arr_ref_items:
       type: object
-      x-jsmn-forge-as: arr_ref_items
+      x-st-generate: arr_ref_items
       properties:
         things:
           type: array
@@ -121,7 +121,7 @@ components:
     # Path A→C→B→A — property → $ref → array → object
     ref_to_array:
       type: object
-      x-jsmn-forge-as: ref_to_array
+      x-st-generate: ref_to_array
       properties:
         collection:
           $ref: "forge://test/targets/v0#/components/schemas/target_c"
@@ -129,7 +129,7 @@ components:
     # Path A→B→C→A→A — array items → $ref → object with nested child
     arr_ref_nested:
       type: object
-      x-jsmn-forge-as: arr_ref_nested
+      x-st-generate: arr_ref_nested
       properties:
         entries:
           type: array
@@ -141,7 +141,7 @@ components:
 
     # allOf — two inline branches merged
     allof_inline:
-      x-jsmn-forge-as: allof_inline
+      x-st-generate: allof_inline
       allOf:
         - type: object
           properties:
@@ -156,7 +156,7 @@ components:
     # allOf + own properties — parent has properties and allOf branches
     allof_with_props:
       type: object
-      x-jsmn-forge-as: allof_with_props
+      x-st-generate: allof_with_props
       properties:
         own:
           type: integer
@@ -169,7 +169,7 @@ components:
 
     # allOf with $ref branch — one branch is a cross-spec ref
     allof_ref:
-      x-jsmn-forge-as: allof_ref
+      x-st-generate: allof_ref
       allOf:
         - $ref: "forge://test/targets/v0#/components/schemas/target_a"
         - type: object
@@ -179,20 +179,20 @@ components:
 
     # allOf with nested child — branch contains a marked nested object
     allof_nested:
-      x-jsmn-forge-as: allof_nested
+      x-st-generate: allof_nested
       allOf:
         - type: object
           properties:
             child:
               type: object
-              x-jsmn-forge-as: allof_nested_child
+              x-st-generate: allof_nested_child
               properties:
                 flag:
                   type: boolean
 
     # allOf required union — required spread across parent + branches
     allof_required:
-      x-jsmn-forge-as: allof_required
+      x-st-generate: allof_required
       required: [from_parent]
       allOf:
         - type: object

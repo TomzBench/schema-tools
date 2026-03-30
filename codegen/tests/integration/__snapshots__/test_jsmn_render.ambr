@@ -484,8 +484,8 @@
   #endif
   
   #endif /* JSMN_H */
-  #ifndef RUNTIME_H
-  #define RUNTIME_H
+  #ifndef SCHEMA_TOOLS_H
+  #define SCHEMA_TOOLS_H
   
   #include <stdbool.h>
   #include <stdint.h>
@@ -496,26 +496,26 @@
   /* -1..-3 mirror jsmn; -16 and below are runtime errors.                 */
   
   // clang-format off
-  enum rt_err {
+  enum st_err {
       /* jsmn pass-through (keep in sync with enum jsmnerr) */
-      RT_ERR_NOMEM       = -1,   /* not enough tokens                     */
-      RT_ERR_JSON        = -2,   /* invalid JSON                          */
-      RT_ERR_PARTIAL     = -3,   /* truncated input                       */
+      ST_ERR_NOMEM       = -1,   /* not enough tokens                     */
+      ST_ERR_JSON        = -2,   /* invalid JSON                          */
+      ST_ERR_PARTIAL     = -3,   /* truncated input                       */
   
       /* type / structure */
-      RT_ERR_TYPE        = -16,  /* token type != expected type            */
-      RT_ERR_REQUIRED    = -17,  /* required field missing                 */
-      RT_ERR_UNKNOWN_KEY = -18,  /* unrecognised object key (strict mode)  */
+      ST_ERR_TYPE        = -16,  /* token type != expected type            */
+      ST_ERR_REQUIRED    = -17,  /* required field missing                 */
+      ST_ERR_UNKNOWN_KEY = -18,  /* unrecognised object key (strict mode)  */
   
       /* value constraints */
-      RT_ERR_OVERFLOW    = -32,  /* integer exceeds target range (above)   */
-      RT_ERR_UNDERFLOW   = -33,  /* integer exceeds target range (below)   */
-      RT_ERR_STR_LENGTH  = -34,  /* string exceeds maxLength               */
-      RT_ERR_ARRAY_COUNT = -35,  /* array items exceed capacity            */
-      RT_ERR_FLOAT       = -36,  /* not-finite or out-of-range float       */
+      ST_ERR_OVERFLOW    = -32,  /* integer exceeds target range (above)   */
+      ST_ERR_UNDERFLOW   = -33,  /* integer exceeds target range (below)   */
+      ST_ERR_STR_LENGTH  = -34,  /* string exceeds maxLength               */
+      ST_ERR_ARRAY_COUNT = -35,  /* array items exceed capacity            */
+      ST_ERR_FLOAT       = -36,  /* not-finite or out-of-range float       */
   
       /* encode */
-      RT_ERR_BUFFER      = -48,  /* output buffer too small                */
+      ST_ERR_BUFFER      = -48,  /* output buffer too small                */
   };
   // clang-format on
   
@@ -523,75 +523,75 @@
   /*                                                                       */
   /* uint16_t, 2-bit tag in low bits:                                      */
   /*   xxxxxxxxxxxxxxx1  â†’  primitive     (bits[15:1] = scalar ID)         */
-  /*   xxxxxxxxxxxxx00   â†’  struct index  (bits[15:2] into rt_structs[])   */
-  /*   xxxxxxxxxxxxx10   â†’  array index   (bits[15:2] into rt_arrays[])    */
+  /*   xxxxxxxxxxxxx00   â†’  struct index  (bits[15:2] into st_structs[])   */
+  /*   xxxxxxxxxxxxx10   â†’  array index   (bits[15:2] into st_arrays[])    */
   
-  typedef uint16_t rt_type_t;
+  typedef uint16_t st_type_t;
   
   // clang-format off
-  #define RT_PRIM(id)     ((rt_type_t)(((id) << 1) | 1u))
-  #define RT_STRUCT(i)    ((rt_type_t)((i) << 2))
-  #define RT_ARRAY(i)     ((rt_type_t)(((i) << 2) | 2u))
+  #define ST_PRIM(id)     ((st_type_t)(((id) << 1) | 1u))
+  #define ST_STRUCT(i)    ((st_type_t)((i) << 2))
+  #define ST_ARRAY(i)     ((st_type_t)(((i) << 2) | 2u))
   
-  #define RT_IS_PRIM(t)   ((t) & 1u)
-  #define RT_IS_STRUCT(t) (((t) & 3u) == 0)
-  #define RT_IS_ARRAY(t)  (((t) & 3u) == 2)
-  #define RT_PRIM_ID(t)   ((t) >> 1)
-  #define RT_IDX(t)       ((t) >> 2)
+  #define ST_IS_PRIM(t)   ((t) & 1u)
+  #define ST_IS_STRUCT(t) (((t) & 3u) == 0)
+  #define ST_IS_ARRAY(t)  (((t) & 3u) == 2)
+  #define ST_PRIM_ID(t)   ((t) >> 1)
+  #define ST_IDX(t)       ((t) >> 2)
   // clang-format on
   
   /* â”€â”€ Scalar type IDs (fit in 7 bits) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   
   // clang-format off
-  #define RT_KIND_BOOL   0
-  #define RT_KIND_CHAR   1
-  #define RT_KIND_U8     2
-  #define RT_KIND_I8     3
-  #define RT_KIND_U16    4
-  #define RT_KIND_I16    5
-  #define RT_KIND_U32    6
-  #define RT_KIND_I32    7
-  #define RT_KIND_U64    8
-  #define RT_KIND_I64    9
-  #define RT_KIND_FLOAT  10
-  #define RT_KIND_DOUBLE 11
+  #define ST_KIND_BOOL   0
+  #define ST_KIND_CHAR   1
+  #define ST_KIND_U8     2
+  #define ST_KIND_I8     3
+  #define ST_KIND_U16    4
+  #define ST_KIND_I16    5
+  #define ST_KIND_U32    6
+  #define ST_KIND_I32    7
+  #define ST_KIND_U64    8
+  #define ST_KIND_I64    9
+  #define ST_KIND_FLOAT  10
+  #define ST_KIND_DOUBLE 11
   
-  /* Array kind IDs (only appear in rt_array.kind) */
-  #define RT_KIND_STRING 12
-  #define RT_KIND_FIXED  13
-  #define RT_KIND_VLA    14
+  /* Array kind IDs (only appear in st_array.kind) */
+  #define ST_KIND_STRING 12
+  #define ST_KIND_FIXED  13
+  #define ST_KIND_VLA    14
   // clang-format on
   
   /* â”€â”€ Table entry types (8 bytes each, zero pointers) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   
-  struct rt_field {
-      uint16_t  off_name;    // byte offset into rt_names[]
+  struct st_field {
+      uint16_t  off_name;    // byte offset into st_names[]
       uint16_t  off_value;   // offsetof to value
       uint16_t  off_present; // offsetof to bool present, 0xFFFF = required
-      rt_type_t type;        // prim / struct idx / array idx
+      st_type_t type;        // prim / struct idx / array idx
   };
   
-  struct rt_array {
-      uint8_t   kind; // RT_KIND_STRING / RT_KIND_FIXED / RT_KIND_VLA
+  struct st_array {
+      uint8_t   kind; // ST_KIND_STRING / ST_KIND_FIXED / ST_KIND_VLA
       uint8_t   pad;
       uint16_t  max;       // capacity
       uint16_t  elem_size; // stride in bytes
-      rt_type_t elem;      // element type (recursive)
+      st_type_t elem;      // element type (recursive)
   };
   
-  struct rt_struct {
+  struct st_struct {
       uint8_t  nfields;
       uint8_t  pad;
       uint16_t size;   // sizeof(struct T)
       uint16_t ntoks;  // max jsmn tokens needed
-      uint16_t field0; // start index into rt_fields[]
+      uint16_t field0; // start index into st_fields[]
   };
   
-  struct rt_schemas {
+  struct st_schemas {
       const char             *names;   // field name string blob
-      const struct rt_array  *arrays;  // array descriptors
-      const struct rt_field  *fields;  // field descriptors
-      const struct rt_struct *structs; // struct descriptors
+      const struct st_array  *arrays;  // array descriptors
+      const struct st_field  *fields;  // field descriptors
+      const struct st_struct *structs; // struct descriptors
   };
   
   #ifdef __cplusplus
@@ -599,20 +599,20 @@
   #endif
   
   int
-  rt_decode(const struct rt_schemas *schema,
+  st_decode(const struct st_schemas *schema,
             jsmntok_t               *toks,
             uint32_t                 ntoks,
             void                    *dst,
-            rt_type_t                type,
+            st_type_t                type,
             const char              *src,
             uint32_t                 slen);
   
   int
-  rt_encode(const struct rt_schemas *schemas,
+  st_encode(const struct st_schemas *schemas,
             uint8_t                 *dst,
             uint32_t                 dlen,
             const void              *src,
-            rt_type_t                type);
+            st_type_t                type);
   
   #ifdef __cplusplus
   }
@@ -624,21 +624,21 @@
   #include <stdint.h>
   #include <string.h>
   
-  #ifdef JF_HAS_FLOAT
+  #ifdef ST_HAS_FLOAT
   #include <float.h>
   #include <math.h>
   #include <stdio.h>
   #include <stdlib.h>
   #endif
   
-  #ifdef JF_HAS_INT64
-  typedef uint64_t jf_acc_t;
-  typedef int64_t  jf_sacc_t;
-  #define JF_ACC_MAX UINT64_MAX
+  #ifdef ST_HAS_INT64
+  typedef uint64_t st_acc_t;
+  typedef int64_t  st_sacc_t;
+  #define ST_ACC_MAX UINT64_MAX
   #else
-  typedef uint32_t jf_acc_t;
-  typedef int32_t  jf_sacc_t;
-  #define JF_ACC_MAX UINT32_MAX
+  typedef uint32_t st_acc_t;
+  typedef int32_t  st_sacc_t;
+  #define ST_ACC_MAX UINT32_MAX
   #endif
   
   static inline int
@@ -665,11 +665,11 @@
   }
   
   static int
-  tok_raw_int(const char *json, const jsmntok_t *tok, jf_acc_t *out, bool *neg)
+  tok_raw_int(const char *json, const jsmntok_t *tok, st_acc_t *out, bool *neg)
   {
       const char *c = &json[tok->start];
       const char *end = &json[tok->end];
-      jf_acc_t    val = 0;
+      st_acc_t    val = 0;
   
       *neg = false;
       if (c < end && *c == '-') {
@@ -691,8 +691,8 @@
           if (*c < '0' || *c > '9') {
               return -1; // non-digit -> not a pure int
           }
-          jf_acc_t d = (jf_acc_t)(*c - '0');
-          if (val > (JF_ACC_MAX - d) / 10) {
+          st_acc_t d = (st_acc_t)(*c - '0');
+          if (val > (ST_ACC_MAX - d) / 10) {
               return -1; // overflow
           }
           val = val * 10 + d;
@@ -704,21 +704,21 @@
   }
   
   // clang-format off
-  #define JF_UINT32_TYPES(X)                     \
+  #define ST_UINT32_TYPES(X)                     \
       X(u8,   uint8_t,   UINT8_MAX)              \
       X(u16,  uint16_t,  UINT16_MAX)             \
       X(u32,  uint32_t,  UINT32_MAX)
   
-  #define JF_INT32_TYPES(X)                      \
+  #define ST_INT32_TYPES(X)                      \
       X(i8,   int8_t,    INT8_MAX)               \
       X(i16,  int16_t,   INT16_MAX)              \
       X(i32,  int32_t,   INT32_MAX)
   
-  #ifdef JF_HAS_INT64
-  #define JF_UINT64_TYPES(X)                     \
+  #ifdef ST_HAS_INT64
+  #define ST_UINT64_TYPES(X)                     \
       X(u64,  uint64_t,  UINT64_MAX)
   
-  #define JF_INT64_TYPES(X)                      \
+  #define ST_INT64_TYPES(X)                      \
       X(i64,  int64_t,   INT64_MAX)
   #endif
   // clang-format on
@@ -726,11 +726,11 @@
   #define GEN_UINT_PARSER(name, ctype, hi)                                       \
       int tok_##name(const char *json, const jsmntok_t *tok, ctype *out)         \
       {                                                                          \
-          jf_acc_t raw;                                                          \
+          st_acc_t raw;                                                          \
           bool     neg;                                                          \
           if (tok_raw_int(json, tok, &raw, &neg))                                \
               return -1;                                                         \
-          if (neg || raw > (jf_acc_t)(hi))                                       \
+          if (neg || raw > (st_acc_t)(hi))                                       \
               return -1;                                                         \
           *out = (ctype)raw;                                                     \
           return 0;                                                              \
@@ -742,7 +742,7 @@
   #define GEN_INT_PARSER(name, ctype, hi)                                        \
       int tok_##name(const char *json, const jsmntok_t *tok, ctype *out)         \
       {                                                                          \
-          jf_acc_t raw;                                                          \
+          st_acc_t raw;                                                          \
           bool     neg;                                                          \
           if (tok_raw_int(json, tok, &raw, &neg))                                \
               return -1;                                                         \
@@ -751,29 +751,29 @@
                   *out = 0;                                                      \
                   return 0;                                                      \
               }                                                                  \
-              if (raw - 1 > (jf_acc_t)(hi))                                      \
+              if (raw - 1 > (st_acc_t)(hi))                                      \
                   return -1;                                                     \
               *out = -(ctype)(raw - 1) - 1;                                      \
           } else {                                                               \
-              if (raw > (jf_acc_t)(hi))                                          \
+              if (raw > (st_acc_t)(hi))                                          \
                   return -1;                                                     \
               *out = (ctype)raw;                                                 \
           }                                                                      \
           return 0;                                                              \
       }
   
-  JF_UINT32_TYPES(GEN_UINT_PARSER)
-  JF_INT32_TYPES(GEN_INT_PARSER)
+  ST_UINT32_TYPES(GEN_UINT_PARSER)
+  ST_INT32_TYPES(GEN_INT_PARSER)
   
-  #ifdef JF_HAS_INT64
-  JF_UINT64_TYPES(GEN_UINT_PARSER)
-  JF_INT64_TYPES(GEN_INT_PARSER)
+  #ifdef ST_HAS_INT64
+  ST_UINT64_TYPES(GEN_UINT_PARSER)
+  ST_INT64_TYPES(GEN_INT_PARSER)
   #endif
   
   #undef GEN_UINT_PARSER
   #undef GEN_INT_PARSER
   
-  #ifdef JF_HAS_FLOAT
+  #ifdef ST_HAS_FLOAT
   
   // NOTE: strtod is locale-sensitive â€” caller must ensure LC_NUMERIC is "C".
   static int
@@ -822,7 +822,7 @@
       return 0;
   }
   
-  #endif /* JF_HAS_FLOAT */
+  #endif /* ST_HAS_FLOAT */
   
   int
   tok_bool(const char *json, const jsmntok_t *tok, bool *result)
@@ -880,15 +880,15 @@
   
   /* Compute element stride for arrays where elem_size==0 (inlined fixed dims) */
   static uint16_t
-  calculate_array_stride(const struct rt_schemas *schema,
-                         const struct rt_array   *a)
+  calculate_array_stride(const struct st_schemas *schema,
+                         const struct st_array   *a)
   {
       // TODO this is able to be codegenned into the descriptors
       if (a->elem_size != 0) {
           return a->elem_size;
       } else {
-          assert(RT_IS_ARRAY(a->elem));
-          const struct rt_array *child = &schema->arrays[RT_IDX(a->elem)];
+          assert(ST_IS_ARRAY(a->elem));
+          const struct st_array *child = &schema->arrays[ST_IDX(a->elem)];
           return child->max * calculate_array_stride(schema, child);
       }
   }
@@ -902,46 +902,46 @@
   // clang-format on
   
   struct decoder {
-      const struct rt_schemas *schemas;
+      const struct st_schemas *schemas;
       const char              *json;
       jsmntok_t               *toks;
   };
   
   static int
-  decode_type(const struct decoder *dec, void *dst, int itok, rt_type_t type);
+  decode_type(const struct decoder *dec, void *dst, int itok, st_type_t type);
   
   static int
   decode_primitive(void            *dst,
-                   rt_type_t        type,
+                   st_type_t        type,
                    const char      *json,
                    const jsmntok_t *tok)
   {
-      switch (RT_PRIM_ID(type)) {
-      case RT_KIND_BOOL:
+      switch (ST_PRIM_ID(type)) {
+      case ST_KIND_BOOL:
           return tok_bool(json, tok, (bool *)dst);
-      case RT_KIND_CHAR:
-      case RT_KIND_U8:
+      case ST_KIND_CHAR:
+      case ST_KIND_U8:
           return tok_u8(json, tok, dst);
-      case RT_KIND_I8:
+      case ST_KIND_I8:
           return tok_i8(json, tok, dst);
-      case RT_KIND_U16:
+      case ST_KIND_U16:
           return tok_u16(json, tok, dst);
-      case RT_KIND_I16:
+      case ST_KIND_I16:
           return tok_i16(json, tok, dst);
-      case RT_KIND_U32:
+      case ST_KIND_U32:
           return tok_u32(json, tok, dst);
-      case RT_KIND_I32:
+      case ST_KIND_I32:
           return tok_i32(json, tok, dst);
-  #ifdef JF_HAS_INT64
-      case RT_KIND_U64:
+  #ifdef ST_HAS_INT64
+      case ST_KIND_U64:
           return tok_u64(json, tok, dst);
-      case RT_KIND_I64:
+      case ST_KIND_I64:
           return tok_i64(json, tok, dst);
   #endif
-  #ifdef JF_HAS_FLOAT
-      case RT_KIND_FLOAT:
+  #ifdef ST_HAS_FLOAT
+      case ST_KIND_FLOAT:
           return tok_float(json, tok, dst);
-      case RT_KIND_DOUBLE:
+      case ST_KIND_DOUBLE:
           return tok_double(json, tok, dst);
   #endif
       default:
@@ -957,21 +957,21 @@
       if (tok->type == JSMN_STRING) {
           uint32_t slen = (uint32_t)(tok->end - tok->start);
           if (slen >= dlen) {
-              return RT_ERR_STR_LENGTH;
+              return ST_ERR_STR_LENGTH;
           }
           memcpy(dst, &json[tok->start], slen);
           ((uint8_t *)dst)[slen] = '\0';
           return 0;
       } else {
-          return RT_ERR_TYPE;
+          return ST_ERR_TYPE;
       }
   }
   
   static int
   decode_array(const struct decoder *dec, void *dst, int arr_idx, int itok)
   {
-      const struct rt_array *a = &dec->schemas->arrays[arr_idx];
-      if (a->kind == RT_KIND_STRING) {
+      const struct st_array *a = &dec->schemas->arrays[arr_idx];
+      if (a->kind == ST_KIND_STRING) {
           return decode_string(dst, a->max, dec->json, &dec->toks[itok]);
       } else if (dec->toks[itok].type == JSMN_ARRAY) {
           // When advertised length of array exceeds max, skip the tail tokens.
@@ -982,7 +982,7 @@
           uint8_t *items = dst;
           itok++;
   
-          if (a->kind == RT_KIND_VLA) {
+          if (a->kind == ST_KIND_VLA) {
               *(uint32_t *)dst = (uint32_t)count;
               items += 8;
           }
@@ -998,19 +998,19 @@
   
           return 0;
       } else {
-          return RT_ERR_TYPE;
+          return ST_ERR_TYPE;
       }
   }
   
   static int
   decode_struct(const struct decoder *dec, void *dst, int struct_idx, int itok)
   {
-      const struct rt_struct *s = &dec->schemas->structs[struct_idx];
+      const struct st_struct *s = &dec->schemas->structs[struct_idx];
       int                     nkeys, err = 0, n = itok;
   
       // Peel { token
       if (dec->toks[n].type != JSMN_OBJECT) {
-          return RT_ERR_TYPE;
+          return ST_ERR_TYPE;
       }
       nkeys = dec->toks[n].size;
       n++;
@@ -1020,7 +1020,7 @@
       // Build required mask + initialize optional presence flags
       uint64_t required = 0, seen = 0;
       for (int fidx = s->field0; fidx < s->field0 + s->nfields; fidx++) {
-          const struct rt_field *f = &dec->schemas->fields[fidx];
+          const struct st_field *f = &dec->schemas->fields[fidx];
           int                    bit = fidx - s->field0;
           if (field_is_optional(f)) {
               field_set_present(f, dst, false);
@@ -1035,7 +1035,7 @@
           int vtok = n + 1; // toks[n+1] = value
           for (int fidx = s->field0; fidx < s->field0 + s->nfields; fidx++) {
               // get field and key
-              const struct rt_field *f = &dec->schemas->fields[fidx];
+              const struct st_field *f = &dec->schemas->fields[fidx];
               const char            *key = &dec->schemas->names[f->off_name];
               uint32_t               keylen = strlen(key);
   
@@ -1073,29 +1073,29 @@
       }
   
       if ((required & ~seen) != 0) {
-          return RT_ERR_REQUIRED;
+          return ST_ERR_REQUIRED;
       }
       return 0;
   }
   
   static int
-  decode_type(const struct decoder *dec, void *dst, int itok, rt_type_t type)
+  decode_type(const struct decoder *dec, void *dst, int itok, st_type_t type)
   {
-      if (RT_IS_ARRAY(type)) {
-          return decode_array(dec, dst, RT_IDX(type), itok);
-      } else if (RT_IS_STRUCT(type)) {
-          return decode_struct(dec, dst, RT_IDX(type), itok);
+      if (ST_IS_ARRAY(type)) {
+          return decode_array(dec, dst, ST_IDX(type), itok);
+      } else if (ST_IS_STRUCT(type)) {
+          return decode_struct(dec, dst, ST_IDX(type), itok);
       } else {
           return decode_primitive(dst, type, dec->json, &dec->toks[itok]);
       }
   }
   
   int
-  rt_decode(const struct rt_schemas *schema,
+  st_decode(const struct st_schemas *schema,
             jsmntok_t               *toks,
             uint32_t                 ntoks,
             void                    *dst,
-            rt_type_t                type,
+            st_type_t                type,
             const char              *src,
             uint32_t                 slen)
   {
@@ -1108,7 +1108,7 @@
           return atoks;
       }
       if (atoks < 1) {
-          return RT_ERR_PARTIAL;
+          return ST_ERR_PARTIAL;
       }
   
       struct decoder dec = {.schemas = schema, .json = src, .toks = toks};
@@ -1146,7 +1146,7 @@
       }
   
   const char *
-  fmt_uint(jf_acc_t val, char (*buf)[20], uint8_t *sz)
+  fmt_uint(st_acc_t val, char (*buf)[20], uint8_t *sz)
   {
       *sz = 0;
       do {
@@ -1159,12 +1159,12 @@
   /* Negate without UB: -(val+1) avoids overflow at MIN, the +1 in unsigned
    * recovers the correct absolute value.  e.g. -INT32_MIN â†’ 2147483648u.   */
   const char *
-  fmt_int(jf_sacc_t val, char (*buf)[20], uint8_t *sz)
+  fmt_int(st_sacc_t val, char (*buf)[20], uint8_t *sz)
   {
       if (val >= 0) {
-          return fmt_uint((jf_acc_t)val, buf, sz);
+          return fmt_uint((st_acc_t)val, buf, sz);
       } else {
-          const char *result = fmt_uint((jf_acc_t)(-(val + 1)) + 1, buf, sz);
+          const char *result = fmt_uint((st_acc_t)(-(val + 1)) + 1, buf, sz);
           (*buf)[20 - ++*sz] = '-';
           return (const char *)&(*buf)[20 - *sz];
       }
@@ -1176,16 +1176,16 @@
   };
   
   struct encoder {
-      const struct rt_schemas *schemas;
+      const struct st_schemas *schemas;
       struct cursor           *cursor;
   };
   
   static int
-  encode_type(struct encoder *enc, void *src, rt_type_t type);
+  encode_type(struct encoder *enc, void *src, st_type_t type);
   
   static int
   encode_primitive(struct cursor *cursor,
-                   rt_type_t      type,
+                   st_type_t      type,
                    const uint8_t *base,
                    uint16_t       off)
   {
@@ -1195,51 +1195,51 @@
           char snp[25];
       } tmp;
       const char *fmt;
-      switch (RT_PRIM_ID(type)) {
-      case RT_KIND_BOOL:
+      switch (ST_PRIM_ID(type)) {
+      case ST_KIND_BOOL:
           if (offset_val(bool, base, off)) {
               cursor_copy_safe(cursor, "true", 4);
           } else {
               cursor_copy_safe(cursor, "false", 5);
           }
           break;
-      case RT_KIND_CHAR:
-      case RT_KIND_U8:
+      case ST_KIND_CHAR:
+      case ST_KIND_U8:
           fmt = fmt_uint(offset_val(const uint8_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_I8:
+      case ST_KIND_I8:
           fmt = fmt_int(offset_val(const int8_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_U16:
+      case ST_KIND_U16:
           fmt = fmt_uint(offset_val(const uint16_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_I16:
+      case ST_KIND_I16:
           fmt = fmt_int(offset_val(const int16_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_U32:
+      case ST_KIND_U32:
           fmt = fmt_uint(offset_val(const uint32_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_I32:
+      case ST_KIND_I32:
           fmt = fmt_int(offset_val(const int32_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-  #ifdef JF_HAS_INT64
-      case RT_KIND_U64:
+  #ifdef ST_HAS_INT64
+      case ST_KIND_U64:
           fmt = fmt_uint(offset_val(const uint64_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
-      case RT_KIND_I64:
+      case ST_KIND_I64:
           fmt = fmt_int(offset_val(const int64_t, base, off), &tmp.fmt, &sz);
           cursor_copy_safe(cursor, fmt, sz);
           break;
   #endif
-  #ifdef JF_HAS_FLOAT
-      case RT_KIND_FLOAT:
+  #ifdef ST_HAS_FLOAT
+      case ST_KIND_FLOAT:
   
           sz = snprintf(tmp.snp,
                         sizeof(tmp),
@@ -1248,7 +1248,7 @@
           assert(sz < (int)sizeof(tmp));
           cursor_copy_safe(cursor, tmp.snp, sz);
           break;
-      case RT_KIND_DOUBLE:
+      case ST_KIND_DOUBLE:
           sz = snprintf(tmp.snp,
                         sizeof(tmp.snp),
                         "%.17g",
@@ -1260,7 +1260,7 @@
       }
       return (int)cursor->pos;
   fail:
-      return RT_ERR_BUFFER;
+      return ST_ERR_BUFFER;
   }
   
   static int
@@ -1271,21 +1271,21 @@
       cursor_push_safe(c, '"');
       return c->pos;
   fail:
-      return RT_ERR_BUFFER;
+      return ST_ERR_BUFFER;
   }
   
   static int
   encode_array(struct encoder *enc, void *src, int idx)
   {
-      const struct rt_array *a = &enc->schemas->arrays[idx];
-      if (a->kind == RT_KIND_STRING) {
+      const struct st_array *a = &enc->schemas->arrays[idx];
+      if (a->kind == ST_KIND_STRING) {
           return encode_string(enc->cursor, src, strlen(src));
       } else {
           // TODO this is a compile time known attribute. ie: a->stride
           uint16_t       stride = calculate_array_stride(enc->schemas, a);
           const uint8_t *items;
           int            count;
-          if (a->kind == RT_KIND_FIXED) {
+          if (a->kind == ST_KIND_FIXED) {
               count = (int)a->max;
               items = src;
           } else {
@@ -1309,19 +1309,19 @@
       cursor_push_safe(enc->cursor, ']');
       return enc->cursor->pos;
   fail:
-      return RT_ERR_BUFFER;
+      return ST_ERR_BUFFER;
   }
   
   static int
   encode_struct(struct encoder *enc, const void *src, int idx)
   {
-      const struct rt_struct *s = &enc->schemas->structs[idx];
+      const struct st_struct *s = &enc->schemas->structs[idx];
       int                     err = -1;
       bool                    first = true;
   
       cursor_push_safe(enc->cursor, '{');
       for (int fidx = s->field0; fidx < s->field0 + s->nfields; fidx++) {
-          const struct rt_field *f = &enc->schemas->fields[fidx];
+          const struct st_field *f = &enc->schemas->fields[fidx];
   
           // Skip optional absent fields
           if (field_is_optional(f) && !field_is_present(f, src)) {
@@ -1352,27 +1352,27 @@
       cursor_push_safe(enc->cursor, '}');
       return enc->cursor->pos;
   fail:
-      return RT_ERR_BUFFER;
+      return ST_ERR_BUFFER;
   }
   
   static int
-  encode_type(struct encoder *enc, void *src, rt_type_t type)
+  encode_type(struct encoder *enc, void *src, st_type_t type)
   {
-      if (RT_IS_ARRAY(type)) {
-          return encode_array(enc, src, RT_IDX(type));
-      } else if (RT_IS_STRUCT(type)) {
-          return encode_struct(enc, src, RT_IDX(type));
+      if (ST_IS_ARRAY(type)) {
+          return encode_array(enc, src, ST_IDX(type));
+      } else if (ST_IS_STRUCT(type)) {
+          return encode_struct(enc, src, ST_IDX(type));
       } else {
           return encode_primitive(enc->cursor, type, src, 0);
       }
   }
   
   int
-  rt_encode(const struct rt_schemas *schemas,
+  st_encode(const struct st_schemas *schemas,
             uint8_t                 *dst,
             uint32_t                 dlen,
             const void              *src,
-            rt_type_t                type)
+            st_type_t                type)
   {
       struct cursor  cursor = {.ptr = dst, .pos = 0, .len = dlen};
       struct encoder enc = {.cursor = &cursor, .schemas = schemas};
@@ -1404,7 +1404,7 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen);
   
@@ -1412,7 +1412,7 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type);
+      st_type_t type);
   
   int32_t schema_decode_every_type_tok(
       struct every_type *dst,
@@ -1495,7 +1495,7 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen);
   
@@ -1503,7 +1503,7 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type);
+      st_type_t type);
   
   int32_t schema_decode_vla_combos_tok(
       struct vla_combos *dst,
@@ -1572,7 +1572,7 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen);
   
@@ -1580,7 +1580,7 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type);
+      st_type_t type);
   
   int32_t schema_decode_child_tok(
       struct child *dst,
@@ -1653,39 +1653,39 @@
       "p_str\0" /* 65 */
   ;
   
-  static const struct rt_array schema_arrays[] = {
+  static const struct st_array schema_arrays[] = {
       /* [0] string char max=17 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+      { ST_KIND_STRING, 0, 17, sizeof(char), ST_PRIM(ST_KIND_CHAR) },
   };
   
-  static const struct rt_field schema_fields[] = {
+  static const struct st_field schema_fields[] = {
       /* [0] every_type.p_u8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 0, offsetof(struct every_type, p_u8), 0xFFFF, RT_PRIM(RT_KIND_U8) },
+      { 0, offsetof(struct every_type, p_u8), 0xFFFF, ST_PRIM(ST_KIND_U8) },
       /* [1] every_type.p_i8 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 5, offsetof(struct every_type, p_i8), 0xFFFF, RT_PRIM(RT_KIND_I8) },
+      { 5, offsetof(struct every_type, p_i8), 0xFFFF, ST_PRIM(ST_KIND_I8) },
       /* [2] every_type.p_u16 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 10, offsetof(struct every_type, p_u16), 0xFFFF, RT_PRIM(RT_KIND_U16) },
+      { 10, offsetof(struct every_type, p_u16), 0xFFFF, ST_PRIM(ST_KIND_U16) },
       /* [3] every_type.p_i16 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 16, offsetof(struct every_type, p_i16), 0xFFFF, RT_PRIM(RT_KIND_I16) },
+      { 16, offsetof(struct every_type, p_i16), 0xFFFF, ST_PRIM(ST_KIND_I16) },
       /* [4] every_type.p_u32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 22, offsetof(struct every_type, p_u32), 0xFFFF, RT_PRIM(RT_KIND_U32) },
+      { 22, offsetof(struct every_type, p_u32), 0xFFFF, ST_PRIM(ST_KIND_U32) },
       /* [5] every_type.p_i32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 28, offsetof(struct every_type, p_i32), 0xFFFF, RT_PRIM(RT_KIND_I32) },
+      { 28, offsetof(struct every_type, p_i32), 0xFFFF, ST_PRIM(ST_KIND_I32) },
       /* [6] every_type.p_u64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 34, offsetof(struct every_type, p_u64), 0xFFFF, RT_PRIM(RT_KIND_U64) },
+      { 34, offsetof(struct every_type, p_u64), 0xFFFF, ST_PRIM(ST_KIND_U64) },
       /* [7] every_type.p_i64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 40, offsetof(struct every_type, p_i64), 0xFFFF, RT_PRIM(RT_KIND_I64) },
+      { 40, offsetof(struct every_type, p_i64), 0xFFFF, ST_PRIM(ST_KIND_I64) },
       /* [8] every_type.p_bool @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 46, offsetof(struct every_type, p_bool), 0xFFFF, RT_PRIM(RT_KIND_BOOL) },
+      { 46, offsetof(struct every_type, p_bool), 0xFFFF, ST_PRIM(ST_KIND_BOOL) },
       /* [9] every_type.p_f32 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 53, offsetof(struct every_type, p_f32), 0xFFFF, RT_PRIM(RT_KIND_FLOAT) },
+      { 53, offsetof(struct every_type, p_f32), 0xFFFF, ST_PRIM(ST_KIND_FLOAT) },
       /* [10] every_type.p_f64 @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 59, offsetof(struct every_type, p_f64), 0xFFFF, RT_PRIM(RT_KIND_DOUBLE) },
+      { 59, offsetof(struct every_type, p_f64), 0xFFFF, ST_PRIM(ST_KIND_DOUBLE) },
       /* [11] every_type.p_str @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
-      { 65, offsetof(struct every_type, p_str), 0xFFFF, RT_ARRAY(0) },
+      { 65, offsetof(struct every_type, p_str), 0xFFFF, ST_ARRAY(0) },
   };
   
-  static const struct rt_struct schema_structs[] = {
+  static const struct st_struct schema_structs[] = {
       /* [0] every_type @ /forge:~1~1test~1render-every-type~1v0/components/schemas/every_type */
       { 12, 0, sizeof(struct every_type), 25, 0 },
   };
@@ -1693,7 +1693,7 @@
   #define SCHEMA_EVERY_TYPE_KEY 0
   
   
-  static const struct rt_schemas schema_schemas = {
+  static const struct st_schemas schema_schemas = {
       .names   = schema_strings,
       .arrays  = schema_arrays,
       .fields  = schema_fields,
@@ -1705,11 +1705,11 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen)
   {
-      return rt_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
+      return st_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
   }
   
   int32_t
@@ -1717,9 +1717,9 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type)
+      st_type_t type)
   {
-  	return rt_encode(&schema_schemas, dst, dlen, src, type);
+  	return st_encode(&schema_schemas, dst, dlen, src, type);
   }
   
   int32_t
@@ -1730,7 +1730,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return schema_decode(toks, ntoks, dst, RT_STRUCT(SCHEMA_EVERY_TYPE_KEY), src, slen);
+      return schema_decode(toks, ntoks, dst, ST_STRUCT(SCHEMA_EVERY_TYPE_KEY), src, slen);
   }
   
   int32_t
@@ -1749,7 +1749,7 @@
       uint32_t dlen,
       const struct every_type *src)
   {
-  	return schema_encode(dst, dlen, src, RT_STRUCT(SCHEMA_EVERY_TYPE_KEY));
+  	return schema_encode(dst, dlen, src, ST_STRUCT(SCHEMA_EVERY_TYPE_KEY));
   }
   
   
@@ -1768,57 +1768,57 @@
       "d_fff\0" /* 42 */
   ;
   
-  static const struct rt_array schema_arrays[] = {
+  static const struct st_array schema_arrays[] = {
       /* [0] vla vla__u32__n3 max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      { ST_KIND_VLA, 0, 3, sizeof(uint32_t), ST_PRIM(ST_KIND_U32) },
       /* [1] vla vla__vla__u32__n3__n4 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
+      { ST_KIND_VLA, 0, 4, sizeof(struct vla__u32__n3), ST_ARRAY(0) },
       /* [2] vla vla__vla__vla__u32__n3__n4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
+      { ST_KIND_VLA, 0, 5, sizeof(struct vla__vla__u32__n3__n4), ST_ARRAY(1) },
       /* [3] fixed vla__vla__u32__d3__n4__n5 max=3 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 3, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      { ST_KIND_FIXED, 0, 3, sizeof(uint32_t), ST_PRIM(ST_KIND_U32) },
       /* [4] vla vla__u32__d3__n4 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(3) },
+      { ST_KIND_VLA, 0, 4, 0, ST_ARRAY(3) },
       /* [5] vla vla__vla__u32__d3__n4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
+      { ST_KIND_VLA, 0, 5, sizeof(struct vla__u32__d3__n4), ST_ARRAY(4) },
       /* [6] fixed vla__vla__u32__n3__d4__n5 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 4, sizeof(struct vla__u32__n3), RT_ARRAY(0) },
+      { ST_KIND_FIXED, 0, 4, sizeof(struct vla__u32__n3), ST_ARRAY(0) },
       /* [7] vla vla__vla__u32__n3__d4__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(6) },
+      { ST_KIND_VLA, 0, 5, 0, ST_ARRAY(6) },
       /* [8] fixed vla__u32__d4x3__n5 max=4 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 4, 0, RT_ARRAY(3) },
+      { ST_KIND_FIXED, 0, 4, 0, ST_ARRAY(3) },
       /* [9] vla vla__u32__d4x3__n5 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_VLA, 0, 5, 0, RT_ARRAY(8) },
+      { ST_KIND_VLA, 0, 5, 0, ST_ARRAY(8) },
       /* [10] fixed vla__vla__u32__n3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 5, sizeof(struct vla__vla__u32__n3__n4), RT_ARRAY(1) },
+      { ST_KIND_FIXED, 0, 5, sizeof(struct vla__vla__u32__n3__n4), ST_ARRAY(1) },
       /* [11] fixed vla__u32__d3__n4 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 5, sizeof(struct vla__u32__d3__n4), RT_ARRAY(4) },
+      { ST_KIND_FIXED, 0, 5, sizeof(struct vla__u32__d3__n4), ST_ARRAY(4) },
       /* [12] fixed vla__u32__n3 max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(6) },
+      { ST_KIND_FIXED, 0, 5, 0, ST_ARRAY(6) },
       /* [13] fixed uint32_t max=5 @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { RT_KIND_FIXED, 0, 5, 0, RT_ARRAY(8) },
+      { ST_KIND_FIXED, 0, 5, 0, ST_ARRAY(8) },
   };
   
-  static const struct rt_field schema_fields[] = {
+  static const struct st_field schema_fields[] = {
       /* [0] vla_combos.d_vvv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 0, offsetof(struct vla_combos, d_vvv), 0xFFFF, RT_ARRAY(2) },
+      { 0, offsetof(struct vla_combos, d_vvv), 0xFFFF, ST_ARRAY(2) },
       /* [1] vla_combos.d_vvf @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 6, offsetof(struct vla_combos, d_vvf), 0xFFFF, RT_ARRAY(5) },
+      { 6, offsetof(struct vla_combos, d_vvf), 0xFFFF, ST_ARRAY(5) },
       /* [2] vla_combos.d_vfv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 12, offsetof(struct vla_combos, d_vfv), 0xFFFF, RT_ARRAY(7) },
+      { 12, offsetof(struct vla_combos, d_vfv), 0xFFFF, ST_ARRAY(7) },
       /* [3] vla_combos.d_vff @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 18, offsetof(struct vla_combos, d_vff), 0xFFFF, RT_ARRAY(9) },
+      { 18, offsetof(struct vla_combos, d_vff), 0xFFFF, ST_ARRAY(9) },
       /* [4] vla_combos.d_fvv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 24, offsetof(struct vla_combos, d_fvv), 0xFFFF, RT_ARRAY(10) },
+      { 24, offsetof(struct vla_combos, d_fvv), 0xFFFF, ST_ARRAY(10) },
       /* [5] vla_combos.d_fvf @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 30, offsetof(struct vla_combos, d_fvf), 0xFFFF, RT_ARRAY(11) },
+      { 30, offsetof(struct vla_combos, d_fvf), 0xFFFF, ST_ARRAY(11) },
       /* [6] vla_combos.d_ffv @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 36, offsetof(struct vla_combos, d_ffv), 0xFFFF, RT_ARRAY(12) },
+      { 36, offsetof(struct vla_combos, d_ffv), 0xFFFF, ST_ARRAY(12) },
       /* [7] vla_combos.d_fff @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
-      { 42, offsetof(struct vla_combos, d_fff), 0xFFFF, RT_ARRAY(13) },
+      { 42, offsetof(struct vla_combos, d_fff), 0xFFFF, ST_ARRAY(13) },
   };
   
-  static const struct rt_struct schema_structs[] = {
+  static const struct st_struct schema_structs[] = {
       /* [0] vla_combos @ /forge:~1~1test~1render-vla~1v0/components/schemas/vla_combos */
       { 8, 0, sizeof(struct vla_combos), 697, 0 },
   };
@@ -1826,7 +1826,7 @@
   #define SCHEMA_VLA_COMBOS_KEY 0
   
   
-  static const struct rt_schemas schema_schemas = {
+  static const struct st_schemas schema_schemas = {
       .names   = schema_strings,
       .arrays  = schema_arrays,
       .fields  = schema_fields,
@@ -1838,11 +1838,11 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen)
   {
-      return rt_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
+      return st_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
   }
   
   int32_t
@@ -1850,9 +1850,9 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type)
+      st_type_t type)
   {
-  	return rt_encode(&schema_schemas, dst, dlen, src, type);
+  	return st_encode(&schema_schemas, dst, dlen, src, type);
   }
   
   int32_t
@@ -1863,7 +1863,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return schema_decode(toks, ntoks, dst, RT_STRUCT(SCHEMA_VLA_COMBOS_KEY), src, slen);
+      return schema_decode(toks, ntoks, dst, ST_STRUCT(SCHEMA_VLA_COMBOS_KEY), src, slen);
   }
   
   int32_t
@@ -1882,7 +1882,7 @@
       uint32_t dlen,
       const struct vla_combos *src)
   {
-  	return schema_encode(dst, dlen, src, RT_STRUCT(SCHEMA_VLA_COMBOS_KEY));
+  	return schema_encode(dst, dlen, src, ST_STRUCT(SCHEMA_VLA_COMBOS_KEY));
   }
   
   
@@ -1899,35 +1899,35 @@
       "tags\0" /* 29 */
   ;
   
-  static const struct rt_array schema_arrays[] = {
+  static const struct st_array schema_arrays[] = {
       /* [0] string char max=33 @ /forge:~1~1test~1render~1v0/components/schemas/child */
-      { RT_KIND_STRING, 0, 33, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+      { ST_KIND_STRING, 0, 33, sizeof(char), ST_PRIM(ST_KIND_CHAR) },
       /* [1] vla vla__u32__n5 max=5 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { RT_KIND_VLA, 0, 5, sizeof(uint32_t), RT_PRIM(RT_KIND_U32) },
+      { ST_KIND_VLA, 0, 5, sizeof(uint32_t), ST_PRIM(ST_KIND_U32) },
       /* [2] string vla__char__d17__n4 max=17 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { RT_KIND_STRING, 0, 17, sizeof(char), RT_PRIM(RT_KIND_CHAR) },
+      { ST_KIND_STRING, 0, 17, sizeof(char), ST_PRIM(ST_KIND_CHAR) },
       /* [3] vla vla__char__d17__n4 max=4 @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { RT_KIND_VLA, 0, 4, 0, RT_ARRAY(2) },
+      { ST_KIND_VLA, 0, 4, 0, ST_ARRAY(2) },
   };
   
-  static const struct rt_field schema_fields[] = {
+  static const struct st_field schema_fields[] = {
       /* [0] child.flag @ /forge:~1~1test~1render~1v0/components/schemas/child */
-      { 0, offsetof(struct child, flag), 0xFFFF, RT_PRIM(RT_KIND_BOOL) },
+      { 0, offsetof(struct child, flag), 0xFFFF, ST_PRIM(ST_KIND_BOOL) },
       /* [1] child.name @ /forge:~1~1test~1render~1v0/components/schemas/child */
-      { 5, offsetof(struct child, name), 0xFFFF, RT_ARRAY(0) },
+      { 5, offsetof(struct child, name), 0xFFFF, ST_ARRAY(0) },
       /* [2] parent.nested @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { 10, offsetof(struct parent, nested), 0xFFFF, RT_STRUCT(0) },
+      { 10, offsetof(struct parent, nested), 0xFFFF, ST_STRUCT(0) },
       /* [3] parent.count (optional) @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { 17, offsetof(struct parent, count) + offsetof(struct optional__u32, maybe), offsetof(struct parent, count), RT_PRIM(RT_KIND_U32) },
+      { 17, offsetof(struct parent, count) + offsetof(struct optional__u32, maybe), offsetof(struct parent, count), ST_PRIM(ST_KIND_U32) },
       /* [4] parent.items @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { 23, offsetof(struct parent, items), 0xFFFF, RT_ARRAY(1) },
+      { 23, offsetof(struct parent, items), 0xFFFF, ST_ARRAY(1) },
       /* [5] parent.tags @ /forge:~1~1test~1render~1v0/components/schemas/parent */
-      { 29, offsetof(struct parent, tags), 0xFFFF, RT_ARRAY(3) },
+      { 29, offsetof(struct parent, tags), 0xFFFF, ST_ARRAY(3) },
       /* [6] sibling.count (optional) @ /forge:~1~1test~1render~1v0/components/schemas/sibling */
-      { 17, offsetof(struct sibling, count) + offsetof(struct optional__u32, maybe), offsetof(struct sibling, count), RT_PRIM(RT_KIND_U32) },
+      { 17, offsetof(struct sibling, count) + offsetof(struct optional__u32, maybe), offsetof(struct sibling, count), ST_PRIM(ST_KIND_U32) },
   };
   
-  static const struct rt_struct schema_structs[] = {
+  static const struct st_struct schema_structs[] = {
       /* [0] child @ /forge:~1~1test~1render~1v0/components/schemas/child */
       { 2, 0, sizeof(struct child), 5, 0 },
       /* [1] parent @ /forge:~1~1test~1render~1v0/components/schemas/parent */
@@ -1941,7 +1941,7 @@
   #define SCHEMA_SIBLING_KEY 2
   
   
-  static const struct rt_schemas schema_schemas = {
+  static const struct st_schemas schema_schemas = {
       .names   = schema_strings,
       .arrays  = schema_arrays,
       .fields  = schema_fields,
@@ -1953,11 +1953,11 @@
       jsmntok_t *toks,
       uint32_t ntoks,
       void *dst,
-      rt_type_t type,
+      st_type_t type,
       const char *src,
       uint32_t slen)
   {
-      return rt_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
+      return st_decode(&schema_schemas, toks, ntoks, dst, type, src, slen);
   }
   
   int32_t
@@ -1965,9 +1965,9 @@
       uint8_t *dst,
       uint32_t dlen,
       const void *src,
-      rt_type_t type)
+      st_type_t type)
   {
-  	return rt_encode(&schema_schemas, dst, dlen, src, type);
+  	return st_encode(&schema_schemas, dst, dlen, src, type);
   }
   
   int32_t
@@ -1978,7 +1978,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return schema_decode(toks, ntoks, dst, RT_STRUCT(SCHEMA_CHILD_KEY), src, slen);
+      return schema_decode(toks, ntoks, dst, ST_STRUCT(SCHEMA_CHILD_KEY), src, slen);
   }
   
   int32_t
@@ -1997,7 +1997,7 @@
       uint32_t dlen,
       const struct child *src)
   {
-  	return schema_encode(dst, dlen, src, RT_STRUCT(SCHEMA_CHILD_KEY));
+  	return schema_encode(dst, dlen, src, ST_STRUCT(SCHEMA_CHILD_KEY));
   }
   
   int32_t
@@ -2008,7 +2008,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return schema_decode(toks, ntoks, dst, RT_STRUCT(SCHEMA_PARENT_KEY), src, slen);
+      return schema_decode(toks, ntoks, dst, ST_STRUCT(SCHEMA_PARENT_KEY), src, slen);
   }
   
   int32_t
@@ -2027,7 +2027,7 @@
       uint32_t dlen,
       const struct parent *src)
   {
-  	return schema_encode(dst, dlen, src, RT_STRUCT(SCHEMA_PARENT_KEY));
+  	return schema_encode(dst, dlen, src, ST_STRUCT(SCHEMA_PARENT_KEY));
   }
   
   int32_t
@@ -2038,7 +2038,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return schema_decode(toks, ntoks, dst, RT_STRUCT(SCHEMA_SIBLING_KEY), src, slen);
+      return schema_decode(toks, ntoks, dst, ST_STRUCT(SCHEMA_SIBLING_KEY), src, slen);
   }
   
   int32_t
@@ -2057,7 +2057,7 @@
       uint32_t dlen,
       const struct sibling *src)
   {
-  	return schema_encode(dst, dlen, src, RT_STRUCT(SCHEMA_SIBLING_KEY));
+  	return schema_encode(dst, dlen, src, ST_STRUCT(SCHEMA_SIBLING_KEY));
   }
   
   

@@ -1,5 +1,5 @@
 import pytest
-from jsmn_forge.node import ROOT, Location
+from schema_tools.node import ROOT, Location
 
 # --- to_pointer ---
 

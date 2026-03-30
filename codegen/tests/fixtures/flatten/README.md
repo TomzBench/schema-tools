@@ -1,7 +1,7 @@
 # Flatten test fixtures
 
 Two OpenAPI 3.1 specs exercise every structural path through `walk_any` where an
-annotated object (`x-jsmn-forge-as`) can be discovered. Combinational keywords
+annotated object (`x-st-generate`) can be discovered. Combinational keywords
 (`allOf`, `anyOf`, `oneOf`) are not covered yet.
 
 ## Specs
@@ -15,8 +15,8 @@ annotated object (`x-jsmn-forge-as`) can be discovered. Combinational keywords
 
 | Branch | Trigger                            | Action                                          |
 | ------ | ---------------------------------- | ------------------------------------------------ |
-| **A**  | `type: object` + `x-jsmn-forge-as` | Record struct, recurse into `properties`         |
-| **B**  | `type: array`  + `x-jsmn-forge-as` | Record CArray, recurse into `items`              |
+| **A**  | `type: object` + `x-st-generate` | Record struct, recurse into `properties`         |
+| **B**  | `type: array`  + `x-st-generate` | Record CArray, recurse into `items`              |
 | **B'** | `type: array`  (no annotation)     | Follow `items` (no decl emitted)                 |
 | **C**  | `$ref`                             | Resolve via registry, recurse                    |
 

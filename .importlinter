@@ -1,10 +1,10 @@
 [importlinter]
-root_package = jsmn_forge
+root_package = schema_tools
 
 [importlinter:contract:layers]
 name = node <- walk <- spec layering
 type = layers
 layers =
-    jsmn_forge.spec
-    jsmn_forge.walk
-    jsmn_forge.node
+    schema_tools.spec
+    schema_tools.walk
+    schema_tools.node
