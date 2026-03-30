@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import reduce
@@ -32,6 +33,21 @@ type FlattenError = ConstraintViolation | BrokenRef
 class FlattenResult:
     decls: dict[CType, CDecl]
     errors: list[FlattenError]
+
+    def __ior__(self, other: FlattenResult) -> FlattenResult:
+        self.decls |= other.decls
+        self.errors.extend(other.errors)
+        return self
+
+    def __or__(self, other: FlattenResult) -> FlattenResult:
+        return FlattenResult(
+            decls={**self.decls, **other.decls},
+            errors=self.errors + other.errors,
+        )
+
+    @classmethod
+    def empty(cls) -> FlattenResult:
+        return cls(decls={}, errors=[])
 
 
 _FORMAT_MAP: dict[str, str] = {
@@ -109,29 +125,71 @@ def _seek_ctype(schema: Any, loc: Location, curr_resolver: Resolver) -> CType:  
             return CType(inner.name, (dim, *inner.dims))
 
 
+@dataclass
+class Properties:
+    _required: set[str]
+    _properties: list[tuple[str, Any]]
+
+    def __ior__(self, other: Properties) -> Properties:
+        self._required |= other._required
+        self._properties.extend(other._properties)
+        return self
+
+    @classmethod
+    def empty(cls) -> Properties:
+        return cls(set(), [])
+
+    @classmethod
+    def from_object(
+        cls,
+        schema: Any,
+        loc: Location,
+        resolver: Resolver,
+    ) -> Properties:
+        # TODO this is last branch wins when allOf branches declare duplicate names
+        # TODO silently ignores allOf branch is a primitive
+        props = cls.empty()
+        for branch in schema.get("allOf", []):
+            if "$ref" in branch:
+                (rloc, rschema, rresolver) = _follow_ref(branch, loc, resolver)
+                props |= cls.from_object(
+                    rschema,
+                    rloc,
+                    rresolver,
+                )
+            elif branch.get("type") == "object" or "allOf" in branch:
+                props |= cls.from_object(branch, loc, resolver)
+
+        for p in schema.get("properties", {}).items():
+            props._properties.append(p)
+        props._required |= set(schema.get("required", []))
+        return props
+
+    def properties(self) -> Iterator[tuple[bool, str, Any]]:
+        for name, schema in self._properties:
+            yield name in self._required, name, schema
+
+
 # Walk complex types (objects, arrays, $refs, and (eventually) compositional
 def _walk_any(
     schema: Any,
     loc: Location,
     curr_resolver: Resolver,
 ) -> FlattenResult:
-    ty: TypeKey = schema.get("type")
+    ty: TypeKey = schema.get("type", "object")
     if ty == "object" and "x-jsmn-forge-as" in schema:
-        decls: dict[CType, CDecl] = {}
-        errors: list[FlattenError] = []
+        fresult = FlattenResult.empty()
         fields: list[Field] = []
         properties_location = loc.push("properties")
-        required = set(schema.get("required", []))
-        for prop_name, prop_schema in schema.get("properties", {}).items():
+        props = Properties.from_object(schema, loc, curr_resolver)
+        for required, prop_name, prop_schema in props.properties():
             prop_loc = properties_location.push(prop_name)
             prop_ctype = _seek_ctype(prop_schema, prop_loc, curr_resolver)
-            fields.append(Field(prop_name, prop_ctype, prop_name in required))
-            child = _walk_any(prop_schema, prop_loc, curr_resolver)
-            decls |= child.decls
-            errors.extend(child.errors)
+            fields.append(Field(prop_name, prop_ctype, required))
+            fresult |= _walk_any(prop_schema, prop_loc, curr_resolver)
         ctype = CType(schema["x-jsmn-forge-as"])
-        decls |= {ctype: CStruct(ctype, loc, fields)}
-        return FlattenResult(decls, errors)
+        fresult.decls |= {ctype: CStruct(ctype, loc, fields)}
+        return fresult
     elif ty == "array":
         prop_loc = loc.push("items")
         items = schema.get("items")
@@ -142,10 +200,11 @@ def _walk_any(
                 elem=_seek_ctype(items, prop_loc, curr_resolver),
                 loc=prop_loc,
                 min=schema.get("minItems", 0),
-                max=schema.get("maxItems", 0), # TODO value error
+                max=schema.get("maxItems", 0),  # TODO value error
             )
-            inner = _walk_any(items, prop_loc, curr_resolver)
-            return FlattenResult({**inner.decls, ctype: carr}, inner.errors)
+            fresult = _walk_any(items, prop_loc, curr_resolver)
+            fresult.decls |= {ctype: carr}
+            return fresult
         else:
             return _walk_any(items, prop_loc, curr_resolver)
 
@@ -153,19 +212,21 @@ def _walk_any(
         resolved = _follow_ref(schema, loc, curr_resolver)
         (target_location, contents, target_resolver) = resolved
         return _walk_any(contents, target_location, target_resolver)
-    elif any(k in schema for k in ("allOf", "anyOf", "oneOf")):
+    elif "allOf" in schema:
+        fresult = FlattenResult.empty()
+        for branch in schema["allOf"]:
+            fresult |= _walk_any(branch, loc, curr_resolver)
+        return fresult
+    elif any(k in schema for k in ("anyOf", "oneOf")):
         raise NotImplementedError
     else:
-        return FlattenResult({}, [])
+        return FlattenResult.empty()
 
 
 # Walk spec and get locations of  all structs
 def flatten_with_resolver(*specs: Any, resolver: Resolver) -> FlattenResult:
     def step(acc: FlattenResult, s: StepSpec) -> FlattenResult:
-        results = _walk_any(s.value, s.location, resolver)
-        decls = {**acc.decls, **results.decls}
-        errors = acc.errors + results.errors
-        return FlattenResult(decls, errors)
+        return acc | _walk_any(s.value, s.location, resolver)
 
     # Filter in all object and array schemas
     def is_schema(step: StepSpec) -> bool:
@@ -173,12 +234,12 @@ def flatten_with_resolver(*specs: Any, resolver: Resolver) -> FlattenResult:
             step.kind == "schema_enter"
             and isinstance(step.value, dict)
             and "x-jsmn-forge-as" in step.value
-            and (ty := step.value.get("type"))
         ):
-            return ty == "object" or ty == "array"
+            ty = step.value.get("type")
+            return ty == "object" or ty == "array" or "allOf" in step.value
         else:
             return False
 
-    init = FlattenResult({}, [])
+    init = FlattenResult.empty()
     steps = filter(is_schema, walk(*specs, draft=OPENAPI_3_1))
     return reduce(step, steps, init)

@@ -136,3 +136,70 @@ components:
           maxItems: 4
           items:
             $ref: "forge://test/targets/v0#/components/schemas/target_b"
+
+    # ── allOf cases ─────────────────────────────────────────────────
+
+    # allOf — two inline branches merged
+    allof_inline:
+      x-jsmn-forge-as: allof_inline
+      allOf:
+        - type: object
+          properties:
+            alpha:
+              type: integer
+              format: uint32
+        - type: object
+          properties:
+            beta:
+              type: boolean
+
+    # allOf + own properties — parent has properties and allOf branches
+    allof_with_props:
+      type: object
+      x-jsmn-forge-as: allof_with_props
+      properties:
+        own:
+          type: integer
+          format: uint16
+      allOf:
+        - type: object
+          properties:
+            merged:
+              type: boolean
+
+    # allOf with $ref branch — one branch is a cross-spec ref
+    allof_ref:
+      x-jsmn-forge-as: allof_ref
+      allOf:
+        - $ref: "forge://test/targets/v0#/components/schemas/target_a"
+        - type: object
+          properties:
+            extra:
+              type: boolean
+
+    # allOf with nested child — branch contains a marked nested object
+    allof_nested:
+      x-jsmn-forge-as: allof_nested
+      allOf:
+        - type: object
+          properties:
+            child:
+              type: object
+              x-jsmn-forge-as: allof_nested_child
+              properties:
+                flag:
+                  type: boolean
+
+    # allOf required union — required spread across parent + branches
+    allof_required:
+      x-jsmn-forge-as: allof_required
+      required: [from_parent]
+      allOf:
+        - type: object
+          required: [from_branch]
+          properties:
+            from_parent:
+              type: integer
+              format: uint32
+            from_branch:
+              type: boolean

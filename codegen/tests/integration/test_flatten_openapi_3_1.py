@@ -47,6 +47,12 @@ def test_flatten_collects_all_structs(registry: Registry) -> None:
         CType("target_b"),
         CType("target_b_child"),
         CType("target_c_item"),
+        CType("allof_inline"),
+        CType("allof_with_props"),
+        CType("allof_ref"),
+        CType("allof_nested"),
+        CType("allof_nested_child"),
+        CType("allof_required"),
     }
 
 
@@ -87,3 +93,57 @@ def test_flatten_top_level_array_ref(registry: Registry) -> None:
     assert decl.elem == CType("target_a")
     assert decl.min == 0
     assert decl.max == 8
+
+
+def test_flatten_allof_inline(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("allof_inline")]
+    assert isinstance(decl, CStruct)
+    assert len(decl.fields) == 2
+    assert decl.fields[0].name == "alpha"
+    assert decl.fields[0].ctype == CType("uint32_t")
+    assert decl.fields[1].name == "beta"
+    assert decl.fields[1].ctype == CType("bool")
+
+
+def test_flatten_allof_with_own_props(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("allof_with_props")]
+    assert isinstance(decl, CStruct)
+    field_names = [f.name for f in decl.fields]
+    assert "merged" in field_names
+    assert "own" in field_names
+
+
+def test_flatten_allof_ref_branch(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("allof_ref")]
+    assert isinstance(decl, CStruct)
+    field_names = [f.name for f in decl.fields]
+    assert "id" in field_names
+    assert "extra" in field_names
+
+
+def test_flatten_allof_nested_child(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("allof_nested")]
+    assert isinstance(decl, CStruct)
+    assert decl.fields[0].name == "child"
+    assert decl.fields[0].ctype == CType("allof_nested_child")
+    # nested child also collected
+    child = result.decls[CType("allof_nested_child")]
+    assert isinstance(child, CStruct)
+
+
+def test_flatten_allof_required_union(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("allof_required")]
+    assert isinstance(decl, CStruct)
+    by_name = {f.name: f for f in decl.fields}
+    assert by_name["from_parent"].required is True
+    assert by_name["from_branch"].required is True
