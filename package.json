@@ -1,5 +1,5 @@
 {
-  "name": "jsmn-forge",
+  "name": "schema-tools",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     }
   },
   "bin": {
-    "jsmn-forge": "./dist/cli.js"
+    "schema-tools": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc && node scripts/postbuild.mjs",

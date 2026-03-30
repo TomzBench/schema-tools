@@ -1,6 +1,6 @@
 from typing import Any
 
-from jsmn_forge.node import ROOT, Behavior, Location, Node, Ref
+from schema_tools.node import ROOT, Behavior, Location, Node, Ref
 
 
 # TODO cache anchors and strip duplicates

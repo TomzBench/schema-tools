@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from jsmn_forge.bundle import bundle
+from schema_tools.bundle import bundle
 
 
 def test_bundle_scan() -> None:

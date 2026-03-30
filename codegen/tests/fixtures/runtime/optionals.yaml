@@ -8,7 +8,7 @@ components:
     # Leaf struct used as optional nested field
     detail:
       type: object
-      x-jsmn-forge-as: detail
+      x-st-generate: detail
       required: [code, message]
       properties:
         code:
@@ -21,7 +21,7 @@ components:
     # Mix of required and optional fields
     record:
       type: object
-      x-jsmn-forge-as: record
+      x-st-generate: record
       required: [id]
       properties:
         # Required baseline

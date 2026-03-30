@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from typing import Any, NamedTuple
 
-from jsmn_forge.node import ROOT, Behavior, Location, Node, ObjectNode
+from schema_tools.node import ROOT, Behavior, Location, Node, ObjectNode
 
 
 class Step[K: str](NamedTuple):

@@ -13,19 +13,19 @@ tearDown(void)
 }
 
 // clang-format off
-#define JF_UINT_TESTS(X)                                                   \
+#define ST_UINT_TESTS(X)                                                   \
     X(u8,   uint8_t,   "255",        "256")                                \
     X(u16,  uint16_t,  "65535",      "65536")                              \
     X(u32,  uint32_t,  "4294967295", "4294967296")
 
-#define JF_INT_TESTS(X)                                                    \
+#define ST_INT_TESTS(X)                                                    \
     X(i8,   int8_t,    "127",        "-128",        "128",        "-129")  \
     X(i16,  int16_t,   "32767",      "-32768",      "32768",      "-32769") \
     X(i32,  int32_t,   "2147483647", "-2147483648", "2147483648", "-2147483649")
 // clang-format on
 
-JF_UINT_TESTS(GEN_UINT_TEST)
-JF_INT_TESTS(GEN_INT_TEST)
+ST_UINT_TESTS(GEN_UINT_TEST)
+ST_INT_TESTS(GEN_INT_TEST)
 
 void
 test_tok_skip_primitive(void)
@@ -112,8 +112,8 @@ int
 main(void)
 {
     UNITY_BEGIN();
-    JF_UINT_TESTS(REG_UINT_TEST)
-    JF_INT_TESTS(REG_INT_TEST)
+    ST_UINT_TESTS(REG_UINT_TEST)
+    ST_INT_TESTS(REG_INT_TEST)
     RUN_TEST(test_tok_skip_primitive);
     RUN_TEST(test_tok_skip_flat_object);
     RUN_TEST(test_tok_skip_flat_array);

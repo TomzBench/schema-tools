@@ -10,7 +10,7 @@ static const char {{ prefix ~ "strings"}}[] =
 ;
 
 {# --- Array Descriptors --- #}
-static const struct rt_array {{ prefix ~ "arrays" }}[] = {
+static const struct st_array {{ prefix ~ "arrays" }}[] = {
 {% for a in array_descriptors %}
     /* [{{ loop.index0 }}] {{ a | comment }} */
     { {{ a | array_kind }}, 0, {{ a.max }}, {{ a | elem_size }}, {{ a | elem_expr }} },
@@ -18,7 +18,7 @@ static const struct rt_array {{ prefix ~ "arrays" }}[] = {
 };
 
 {# --- Field Descriptors --- #}
-static const struct rt_field {{ prefix ~ "fields" }}[] = {
+static const struct st_field {{ prefix ~ "fields" }}[] = {
 {% for f in field_descriptors %}
     /* [{{ loop.index0 }}] {{ f | comment }} */
     { {{ f | name_offset }}, {{ f | value_offset }}, {{ f | present_offset }}, {{ f | type_expr }} },
@@ -26,7 +26,7 @@ static const struct rt_field {{ prefix ~ "fields" }}[] = {
 };
 
 {# --- Struct Descriptors --- #}
-static const struct rt_struct {{ prefix ~ "structs" }}[] = {
+static const struct st_struct {{ prefix ~ "structs" }}[] = {
 {% for s in struct_descriptors %}
     /* [{{ loop.index0 }}] {{ s | comment }} */
     { {{ s.nfields }}, 0, {{ s | size_expr }}, {{ s.ntoks }}, {{ s.field0 }} },
@@ -40,7 +40,7 @@ static const struct rt_struct {{ prefix ~ "structs" }}[] = {
 
 
 {# --- Schemas Context --- #}
-static const struct rt_schemas {{ prefix }}schemas = {
+static const struct st_schemas {{ prefix }}schemas = {
     .names   = {{ prefix }}strings,
     .arrays  = {{ prefix }}arrays,
     .fields  = {{ prefix }}fields,
@@ -53,11 +53,11 @@ int32_t
     jsmntok_t *toks,
     uint32_t ntoks,
     void *dst,
-    rt_type_t type,
+    st_type_t type,
     const char *src,
     uint32_t slen)
 {
-    return rt_decode(&{{ prefix ~ "schemas" }}, toks, ntoks, dst, type, src, slen);
+    return st_decode(&{{ prefix ~ "schemas" }}, toks, ntoks, dst, type, src, slen);
 }
 
 int32_t
@@ -65,15 +65,15 @@ int32_t
     uint8_t *dst,
     uint32_t dlen,
     const void *src,
-    rt_type_t type)
+    st_type_t type)
 {
-	return rt_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, type);
+	return st_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, type);
 }
 
 {# --- Struct Loop --- #}
 {% for s in struct_descriptors if s is user_decl %}
 {% set idx = prefix | upper ~ s.ctype.name | upper ~ "_KEY" -%}
-{% set type_expr = "RT_STRUCT(" ~ idx ~ ")" -%}
+{% set type_expr = "ST_STRUCT(" ~ idx ~ ")" -%}
 
 {# --- Struct Decode Function implementations --- #}
 int32_t
@@ -111,7 +111,7 @@ int32_t
 
 {# --- Array Loop --- #}
 {% for a in descriptors | arrays if a is array_decl %}
-{% set type_expr = "RT_ARRAY(" ~ a.key.pos ~ ")" -%}
+{% set type_expr = "ST_ARRAY(" ~ a.key.pos ~ ")" -%}
 
 {# --- Array Decode Tok Implementation --- #}
 int32_t

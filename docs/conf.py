@@ -1,6 +1,6 @@
 from pathlib import Path
 
-project = "jsmn-forge"
+project = "schema-tools"
 copyright = "2025, Altronix"
 author = "Altronix"
 

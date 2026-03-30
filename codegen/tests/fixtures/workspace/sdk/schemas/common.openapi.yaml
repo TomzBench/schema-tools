@@ -17,7 +17,7 @@ paths:
 components:
   schemas:
     device_status:
-      x-jsmn-forge-as: "${id}"
+      x-st-generate: "${id}"
       type: object
       required:
         - online

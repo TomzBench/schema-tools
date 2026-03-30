@@ -17,7 +17,7 @@ paths:
 components:
   schemas:
     ethernet_config:
-      x-jsmn-forge-as: "${id}"
+      x-st-generate: "${id}"
       type: object
       required:
         - ip

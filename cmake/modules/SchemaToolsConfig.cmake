@@ -1,6 +1,6 @@
 set(SchemaTools_FOUND TRUE)
 set(SchemaTools_VERSION "0.1.0")
-find_program(SchemaTools_EXECUTABLE jsmn-forge-codegen REQUIRED)
+find_program(SchemaTools_EXECUTABLE schema-tools-codegen REQUIRED)
 
 macro(_append_if cond var)
     if(${cond})

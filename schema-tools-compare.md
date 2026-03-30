@@ -1,11 +1,11 @@
-# jsmn-forge vs schema_tools — Feature Gap Analysis
+# schema-tools vs schema_tools — Feature Gap Analysis
 
-Comparison of jsmn-forge (successor) against the legacy schema_tools (Rust/CBOR)
+Comparison of schema-tools (successor) against the legacy schema_tools (Rust/CBOR)
 to identify gaps before deprecation.
 
 ## Feature Matrix
 
-| Feature                      | schema_tools (legacy)              | jsmn-forge (new)                  | Gap                             |
+| Feature                      | schema_tools (legacy)              | schema-tools (new)                  | Gap                             |
 | ---------------------------- | ---------------------------------- | --------------------------------- | ------------------------------- |
 | **Spec Formats**             |                                    |                                   |                                 |
 | OpenAPI 3.0                  | Yes                                | —                                 | Not targeted (3.1 only)         |
@@ -13,12 +13,12 @@ to identify gaps before deprecation.
 | AsyncAPI                     | Partial (channels/messages)        | Partial (bundle infra only)       | Parity                          |
 | JSON Schema Draft 2020-12    | —                                  | Yes (via referencing lib)         | —                               |
 | **Wire Formats**             |                                    |                                   |                                 |
-| JSON encode/decode           | Partial (serde-json-core)          | Full (jsmn + custom runtime)      | jsmn-forge ahead                |
+| JSON encode/decode           | Partial (serde-json-core)          | Full (jsmn + custom runtime)      | schema-tools ahead                |
 | CBOR encode/decode           | Full (minicbor)                    | —                                 | **Gap: no CBOR**                |
 | **Primitives**               |                                    |                                   |                                 |
 | u8/i8/u16/i16/u32/i32        | Yes                                | Yes                               | Parity                          |
 | u64/i64                      | Yes                                | Yes (compile flag)                | Parity                          |
-| float/double                 | —                                  | Yes (compile flag)                | jsmn-forge ahead                |
+| float/double                 | —                                  | Yes (compile flag)                | schema-tools ahead                |
 | bool                         | Yes                                | Yes                               | Parity                          |
 | string (fixed buffer)        | Yes                                | Yes                               | Parity                          |
 | **Complex Types**            |                                    |                                   |                                 |
@@ -28,7 +28,7 @@ to identify gaps before deprecation.
 | Arrays (fixed)               | Yes                                | Yes                               | Parity                          |
 | Arrays (VLA)                 | Yes (`vla__T_N`)                   | Yes (`vla__T__nN`)                | Parity                          |
 | Nested arrays (multi-dim)    | Yes                                | Yes (all 8 combos tested)         | Parity                          |
-| Top-level arrays             | —                                  | Yes (new!)                        | jsmn-forge ahead                |
+| Top-level arrays             | —                                  | Yes (new!)                        | schema-tools ahead                |
 | **Composition**              |                                    |                                   |                                 |
 | `$ref` (same file)           | Yes                                | Yes                               | Parity                          |
 | `$ref` (cross file)          | Yes                                | Yes (URI scheme)                  | Parity                          |
@@ -38,7 +38,7 @@ to identify gaps before deprecation.
 | Enums (C enum codegen)       | —                                  | —                                 | Neither has it                  |
 | Union/discriminated unions   | Partial (global vtable)            | Yes (descriptor table dispatch)   | Parity                          |
 | **Annotations**              |                                    |                                   |                                 |
-| `x-type-id` (name override)  | Yes                                | `x-jsmn-forge-as` (equivalent)    | Parity (different name)         |
+| `x-type-id` (name override)  | Yes                                | `x-st-generate` (equivalent)    | Parity (different name)         |
 | `x-extends`                  | Yes                                | —                                 | **Gap**                         |
 | **Validation**               |                                    |                                   |                                 |
 | Number range (min/max)       | Yes (CBOR runtime)                 | Overflow/underflow only           | **Gap: no min/max constraints** |
@@ -50,8 +50,8 @@ to identify gaps before deprecation.
 | Zero-copy strings            | Yes                                | Yes (pointer into JSON src)       | Parity                          |
 | Heap-free operation          | Yes                                | Yes                               | Parity                          |
 | Error codes                  | 11 codes                           | 10 codes                          | Parity                          |
-| Worst-case buffer sizing     | —                                  | Yes (compile-time `_LEN`)         | jsmn-forge ahead                |
-| Descriptor tables            | —                                  | Yes (rt_struct/field/array)       | jsmn-forge ahead                |
+| Worst-case buffer sizing     | —                                  | Yes (compile-time `_LEN`)         | schema-tools ahead                |
+| Descriptor tables            | —                                  | Yes (rt_struct/field/array)       | schema-tools ahead                |
 | **Build Integration**        |                                    |                                   |                                 |
 | CMake module                 | Yes (comprehensive)                | Yes (`schema_tools_generate`)     | Parity                          |
 | Cargo/Rust build             | Yes (workspace)                    | — (Python only)                   | N/A (different arch)            |
@@ -59,14 +59,14 @@ to identify gaps before deprecation.
 | Conditional resources (`if`) | Yes (Kconfig flags)                | Yes (workspace guards)            | Parity                          |
 | **Code Output**              |                                    |                                   |                                 |
 | C header generation          | Yes                                | Yes                               | Parity                          |
-| C source generation          | —                                  | Yes (.c with tables + functions)  | jsmn-forge ahead                |
+| C source generation          | —                                  | Yes (.c with tables + functions)  | schema-tools ahead                |
 | Global vtable/dispatch       | Yes (anyOf enum + union)           | Yes (generic key/ptr dispatch)    | Parity                          |
 | Prefix support               | Yes (`CONFIG_SCHEMA_TOOLS_PREFIX`) | Yes (`--prefix`)                  | Parity                          |
 | Amalgamation                 | —                                  | TODO                              | Neither complete                |
 | **Testing**                  |                                    |                                   |                                 |
 | Unit tests                   | Yes                                | Yes                               | Parity                          |
 | Snapshot tests               | Yes (trybuild)                     | Yes (syrupy)                      | Parity                          |
-| E2E roundtrip tests          | —                                  | Yes (CMake + Unity)               | jsmn-forge ahead                |
+| E2E roundtrip tests          | —                                  | Yes (CMake + Unity)               | schema-tools ahead                |
 
 ## Key Gaps
 

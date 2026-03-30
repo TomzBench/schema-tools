@@ -10,10 +10,10 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_forge.lang.jsmn.flatten import flatten_with_resolver
-from jsmn_forge.lang.jsmn.render import Renderer
+from schema_tools.lang.jsmn.flatten import flatten_with_resolver
+from schema_tools.lang.jsmn.render import Renderer
 
-JSMN_RUNTIME_DIR = files("jsmn_forge").joinpath("lang", "jsmn", "runtime")
+JSMN_RUNTIME_DIR = files("schema_tools").joinpath("lang", "jsmn", "runtime")
 RUNTIME_FILES = ("runtime.c", "runtime.h", "jsmn.h")
 
 yaml = YAML(typ="safe")
@@ -30,7 +30,7 @@ def _die(fmt: str, *args: object) -> None:
 
 
 def _cmake_dir() -> str:
-    pkg = files("jsmn_forge").joinpath("cmake")
+    pkg = files("schema_tools").joinpath("cmake")
     if Path(str(pkg)).is_dir():
         return str(pkg)
     # Editable install: cmake/ lives at repo root, not inside the package.

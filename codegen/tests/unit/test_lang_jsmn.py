@@ -1,5 +1,5 @@
 import pytest
-from jsmn_forge.lang.jsmn import (
+from schema_tools.lang.jsmn import (
     CType,
     Dim,
     Variant,

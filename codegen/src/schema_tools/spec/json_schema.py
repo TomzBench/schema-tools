@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from jsmn_forge.node import (
+from schema_tools.node import (
     _NO_BHV,
     Behavior,
     MapNode,

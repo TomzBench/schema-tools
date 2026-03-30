@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
-project(jsmn-forge-e2e LANGUAGES C)
+project(schema-tools-e2e LANGUAGES C)
 
 # Load schema-tools cmake modules
 find_program(python3 python REQUIRED)
 execute_process(
-    COMMAND python -m jsmn_forge.cli --cmake-dir OUTPUT_VARIABLE SCHEMA_TOOLS_CMAKE_MODULES_DIR
+    COMMAND python -m schema_tools.cli --cmake-dir OUTPUT_VARIABLE SCHEMA_TOOLS_CMAKE_MODULES_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 find_package(SchemaTools REQUIRED CONFIG HINTS "${SCHEMA_TOOLS_CMAKE_MODULES_DIR}")
@@ -71,7 +71,7 @@ add_library(
     ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.h #
     ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.c #
 )
-target_compile_options(runtime PUBLIC -DJF_HAS_FLOAT -DJF_HAS_INT64)
+target_compile_options(runtime PUBLIC -DST_HAS_FLOAT -DST_HAS_INT64)
 
 add_executable(test_generated test_generated.c)
 target_link_libraries(test_generated PRIVATE unity::framework runtime)

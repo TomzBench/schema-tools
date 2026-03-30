@@ -7,7 +7,7 @@ components:
   schemas:
     every_type:
       type: object
-      x-jsmn-forge-as: every_type
+      x-st-generate: every_type
       required: [p_u8, p_i8, p_u16, p_i16, p_u32, p_i32, p_u64, p_i64, p_bool, p_f32, p_f64, p_str]
       properties:
         p_u8:   { type: integer, format: uint8 }
