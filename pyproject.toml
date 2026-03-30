@@ -40,8 +40,5 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["codegen/src/jsmn_forge"]
 
-[tool.hatch.build.targets.wheel.hooks.custom]
-path = "codegen/build_hooks.py"
-
 [tool.hatch.build.targets.wheel.force-include]
 "cmake/modules" = "jsmn_forge/cmake"
