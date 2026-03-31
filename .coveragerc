@@ -1,0 +1,7 @@
+[run]
+source = schema_tools
+
+[report]
+omit =
+    codegen/src/schema_tools/__main__.py
+    codegen/src/schema_tools/cli.py

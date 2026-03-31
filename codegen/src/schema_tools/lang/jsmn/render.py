@@ -236,7 +236,7 @@ class Renderer:
             return re.sub(
                 r'^#include\s+"[^"]*".*\n',
                 "",
-                p.read_text(),
+                p.read_text(encoding="utf-8"),
                 flags=re.MULTILINE,
             )
 

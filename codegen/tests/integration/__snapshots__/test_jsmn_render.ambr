@@ -490,7 +490,7 @@
   #include <stdbool.h>
   #include <stdint.h>
   
-  /* â”€â”€ Error codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Error codes ───────────────────────────────────────────────────── */
   /*                                                                       */
   /* Negative = error, positive = success (byte/token count).              */
   /* -1..-3 mirror jsmn; -16 and below are runtime errors.                 */
@@ -519,12 +519,12 @@
   };
   // clang-format on
   
-  /* â”€â”€ Tagged type handle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Tagged type handle ─────────────────────────────────────────────── */
   /*                                                                       */
   /* uint16_t, 2-bit tag in low bits:                                      */
-  /*   xxxxxxxxxxxxxxx1  â†’  primitive     (bits[15:1] = scalar ID)         */
-  /*   xxxxxxxxxxxxx00   â†’  struct index  (bits[15:2] into st_structs[])   */
-  /*   xxxxxxxxxxxxx10   â†’  array index   (bits[15:2] into st_arrays[])    */
+  /*   xxxxxxxxxxxxxxx1  →  primitive     (bits[15:1] = scalar ID)         */
+  /*   xxxxxxxxxxxxx00   →  struct index  (bits[15:2] into st_structs[])   */
+  /*   xxxxxxxxxxxxx10   →  array index   (bits[15:2] into st_arrays[])    */
   
   typedef uint16_t st_type_t;
   
@@ -540,7 +540,7 @@
   #define ST_IDX(t)       ((t) >> 2)
   // clang-format on
   
-  /* â”€â”€ Scalar type IDs (fit in 7 bits) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Scalar type IDs (fit in 7 bits) ───────────────────────────────── */
   
   // clang-format off
   #define ST_KIND_BOOL   0
@@ -562,7 +562,7 @@
   #define ST_KIND_VLA    14
   // clang-format on
   
-  /* â”€â”€ Table entry types (8 bytes each, zero pointers) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Table entry types (8 bytes each, zero pointers) ───────────────── */
   
   struct st_field {
       uint16_t  off_name;    // byte offset into st_names[]
@@ -775,7 +775,7 @@
   
   #ifdef ST_HAS_FLOAT
   
-  // NOTE: strtod is locale-sensitive â€” caller must ensure LC_NUMERIC is "C".
+  // NOTE: strtod is locale-sensitive — caller must ensure LC_NUMERIC is "C".
   static int
   tok_raw_float(const char *json, const jsmntok_t *tok, double *out)
   {
@@ -1157,7 +1157,7 @@
   }
   
   /* Negate without UB: -(val+1) avoids overflow at MIN, the +1 in unsigned
-   * recovers the correct absolute value.  e.g. -INT32_MIN â†’ 2147483648u.   */
+   * recovers the correct absolute value.  e.g. -INT32_MIN → 2147483648u.   */
   const char *
   fmt_int(st_sacc_t val, char (*buf)[20], uint8_t *sz)
   {
