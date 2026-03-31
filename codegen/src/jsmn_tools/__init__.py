@@ -1,0 +1,1 @@
+"""jsmn-tools code generator."""

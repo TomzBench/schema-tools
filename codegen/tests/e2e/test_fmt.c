@@ -12,7 +12,7 @@ tearDown(void)
 }
 
 static void
-assert_fmt_uint(st_acc_t val, const char *expect)
+assert_fmt_uint(jt_acc_t val, const char *expect)
 {
     uint8_t     sz;
     char        buf[20];
@@ -21,7 +21,7 @@ assert_fmt_uint(st_acc_t val, const char *expect)
 }
 
 static void
-assert_fmt_int(st_sacc_t val, const char *expect)
+assert_fmt_int(jt_sacc_t val, const char *expect)
 {
     uint8_t     sz;
     char        buf[20];
@@ -53,7 +53,7 @@ test_fmt_uint_multi_digit(void)
 void
 test_fmt_uint_u32_max(void)
 {
-    assert_fmt_uint((st_acc_t)UINT32_MAX, "4294967295");
+    assert_fmt_uint((jt_acc_t)UINT32_MAX, "4294967295");
 }
 
 void
@@ -80,10 +80,10 @@ test_fmt_int_negative(void)
 void
 test_fmt_int_i32_min(void)
 {
-    assert_fmt_int((st_sacc_t)INT32_MIN, "-2147483648");
+    assert_fmt_int((jt_sacc_t)INT32_MIN, "-2147483648");
 }
 
-#ifdef ST_HAS_INT64
+#ifdef JT_HAS_INT64
 void
 test_fmt_uint_u64_max(void)
 {
@@ -115,7 +115,7 @@ main(void)
     RUN_TEST(test_fmt_int_positive);
     RUN_TEST(test_fmt_int_negative);
     RUN_TEST(test_fmt_int_i32_min);
-#ifdef ST_HAS_INT64
+#ifdef JT_HAS_INT64
     RUN_TEST(test_fmt_uint_u64_max);
     RUN_TEST(test_fmt_int_i64_max);
     RUN_TEST(test_fmt_int_i64_min);

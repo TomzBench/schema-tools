@@ -1,6 +1,6 @@
-# schema-tools
+# jsmn-tools
 
-[![CI](https://github.com/TomzBench/schema-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/TomzBench/schema-tools/actions/workflows/ci.yml)
+[![CI](https://github.com/TomzBench/jsmn-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/TomzBench/jsmn-tools/actions/workflows/ci.yml)
 
 A code generator for JSON parsing in C.
 
@@ -8,7 +8,7 @@ A code generator for JSON parsing in C.
 
 ```bash
 uv run pytest                        # unit + integration
-uv run pytest --cov=schema_tools     # with coverage
+uv run pytest --cov=jsmn_tools     # with coverage
 uv run pytest codegen/tests/unit     # unit only
 uv run radon cc codegen/src -a -nb   # cyclomatic complexity
 uv run radon mi codegen/src -nb      # maintainability index

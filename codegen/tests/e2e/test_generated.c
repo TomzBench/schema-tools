@@ -1,5 +1,5 @@
 #include "runtime.h"
-#include "schema_generated.h"
+#include "jsmn_generated.h"
 #include "unity.h"
 #include "util.h"
 
@@ -20,16 +20,16 @@ tearDown(void)
 
 // clang-format off
 #define ROUNDTRIP(type, TYPE, src, dec)                                         \
-    uint8_t st_j1_[SCHEMA_##TYPE##_LEN];                                       \
-    uint8_t st_j2_[SCHEMA_##TYPE##_LEN];                                       \
-    int32_t st_n1_ = schema_encode_##type(st_j1_, sizeof(st_j1_), (src));      \
-    TEST_ASSERT_GREATER_THAN_INT(0, st_n1_);                                   \
-    int32_t st_nd_ = schema_decode_##type(                                     \
-        (dec), (const char *)st_j1_, (uint32_t)st_n1_);                        \
-    TEST_ASSERT_EQUAL_INT(st_n1_, st_nd_);                                     \
-    int32_t st_n2_ = schema_encode_##type(st_j2_, sizeof(st_j2_), (dec));      \
-    TEST_ASSERT_EQUAL_INT(st_n1_, st_n2_);                                     \
-    TEST_ASSERT_EQUAL_MEMORY(st_j1_, st_j2_, st_n1_)
+    uint8_t jt_j1_[JSMN_##TYPE##_LEN];                                       \
+    uint8_t jt_j2_[JSMN_##TYPE##_LEN];                                       \
+    int32_t jt_n1_ = jsmn_encode_##type(jt_j1_, sizeof(jt_j1_), (src));      \
+    TEST_ASSERT_GREATER_THAN_INT(0, jt_n1_);                                   \
+    int32_t jt_nd_ = jsmn_decode_##type(                                     \
+        (dec), (const char *)jt_j1_, (uint32_t)jt_n1_);                        \
+    TEST_ASSERT_EQUAL_INT(jt_n1_, jt_nd_);                                     \
+    int32_t jt_n2_ = jsmn_encode_##type(jt_j2_, sizeof(jt_j2_), (dec));      \
+    TEST_ASSERT_EQUAL_INT(jt_n1_, jt_n2_);                                     \
+    TEST_ASSERT_EQUAL_MEMORY(jt_j1_, jt_j2_, jt_n1_)
 // clang-format on
 
 /* ── Primitives ────────────────────────────────────────────────────── */
@@ -62,7 +62,7 @@ void
 test_every_type_zero(void)
 {
     struct every_type x = {0};
-    uint8_t           encoded[SCHEMA_EVERY_TYPE_LEN];
+    uint8_t           encoded[JSMN_EVERY_TYPE_LEN];
     // clang-format off
     const char expect[] =
         "{"
@@ -82,7 +82,7 @@ test_every_type_zero(void)
             "\"p_vla\":[]"
         "}";
     // clang-format on
-    int ret = schema_encode_every_type(encoded, sizeof(encoded), &x);
+    int ret = jsmn_encode_every_type(encoded, sizeof(encoded), &x);
     TEST_ASSERT_EQUAL_INT(sizeof(expect) - 1, ret);
     TEST_ASSERT_EQUAL_MEMORY(expect, encoded, ret);
 }
@@ -352,8 +352,8 @@ test_err_missing_required(void)
 {
     struct point dec = {0};
     const char   json[] = "{\"x\":1}";
-    int32_t      ret = schema_decode_point(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(ST_ERR_REQUIRED, ret);
+    int32_t      ret = jsmn_decode_point(&dec, json, sizeof(json) - 1);
+    TEST_ASSERT_EQUAL_INT(JT_ERR_REQUIRED, ret);
 }
 
 void
@@ -361,8 +361,8 @@ test_err_type_mismatch(void)
 {
     struct point dec = {0};
     const char   json[] = "[1,2]";
-    int32_t      ret = schema_decode_point(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(ST_ERR_TYPE, ret);
+    int32_t      ret = jsmn_decode_point(&dec, json, sizeof(json) - 1);
+    TEST_ASSERT_EQUAL_INT(JT_ERR_TYPE, ret);
 }
 
 void
@@ -371,8 +371,8 @@ test_err_string_too_long(void)
     struct tag dec = {0};
     /* 25 chars, exceeds maxLength 24 */
     const char json[] = "{\"label\":\"abcdefghijklmnopqrstuvwxy\"}";
-    int32_t    ret = schema_decode_tag(&dec, json, sizeof(json) - 1);
-    TEST_ASSERT_EQUAL_INT(ST_ERR_STR_LENGTH, ret);
+    int32_t    ret = jsmn_decode_tag(&dec, json, sizeof(json) - 1);
+    TEST_ASSERT_EQUAL_INT(JT_ERR_STR_LENGTH, ret);
 }
 
 void
@@ -380,8 +380,8 @@ test_err_buffer_too_small(void)
 {
     struct point x = {.x = 1, .y = 2};
     uint8_t      buf[2];
-    int32_t      ret = schema_encode_point(buf, sizeof(buf), &x);
-    TEST_ASSERT_EQUAL_INT(ST_ERR_BUFFER, ret);
+    int32_t      ret = jsmn_encode_point(buf, sizeof(buf), &x);
+    TEST_ASSERT_EQUAL_INT(JT_ERR_BUFFER, ret);
 }
 
 /* ── main ──────────────────────────────────────────────────────────── */

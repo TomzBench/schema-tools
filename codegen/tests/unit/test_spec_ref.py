@@ -1,5 +1,5 @@
 import pytest
-from schema_tools.node import Ref
+from jsmn_tools.node import Ref
 
 
 @pytest.mark.parametrize(

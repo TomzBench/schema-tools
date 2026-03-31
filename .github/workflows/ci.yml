@@ -15,11 +15,11 @@ jobs:
       - run: uv sync
 
       - name: Pytest with coverage
-        run: uv run pytest --cov=schema_tools --cov-report=term-missing --cov-fail-under=90
+        run: uv run pytest --cov=jsmn_tools --cov-report=term-missing --cov-fail-under=90
 
       - name: Radon complexity
         run: |
-          output=$(uv run radon cc codegen/src/schema_tools -n D --no-assert)
+          output=$(uv run radon cc codegen/src/jsmn_tools -n D --no-assert)
           if echo "$output" | grep -qE "^\s+[FMCD]"; then
             echo "::error::Complexity check failed — blocks rated D or worse:"
             echo "$output"

@@ -1,5 +1,5 @@
-from schema_tools.node import sort_set, sort_set_by
-from schema_tools.walk import Extra, Missing, MissMatch, diff
+from jsmn_tools.node import sort_set, sort_set_by
+from jsmn_tools.walk import Extra, Missing, MissMatch, diff
 
 
 def test_identical_returns_empty() -> None:

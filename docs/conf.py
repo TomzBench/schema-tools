@@ -1,6 +1,6 @@
 from pathlib import Path
 
-project = "schema-tools"
+project = "jsmn-tools"
 copyright = "2025, Altronix"
 author = "Altronix"
 

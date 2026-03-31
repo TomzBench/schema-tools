@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from schema_tools.node import Location
+from jsmn_tools.node import Location
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML

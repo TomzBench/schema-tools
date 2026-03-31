@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from schema_tools.spec import OPENAPI_3_1
-from schema_tools.walk import walk
+from jsmn_tools.spec import OPENAPI_3_1
+from jsmn_tools.walk import walk
 from ruamel.yaml import YAML
 
 yaml = YAML(typ="safe")

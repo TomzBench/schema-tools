@@ -8,7 +8,7 @@ components:
     # Leaf struct — no deps, baseline emit
     child:
       type: object
-      x-st-generate: child
+      x-jsmn-generate: child
       required: [flag, name]
       properties:
         flag:
@@ -21,7 +21,7 @@ components:
     # VLA of u32 maxItems=5 (VLA expansion), VLA of strings (string array)
     parent:
       type: object
-      x-st-generate: parent
+      x-jsmn-generate: parent
       required: [nested, items, tags]
       properties:
         nested:
@@ -45,7 +45,7 @@ components:
     # Optional u32 — shares optional__u32 / union1__u32 with parent (dedup)
     sibling:
       type: object
-      x-st-generate: sibling
+      x-jsmn-generate: sibling
       required: []
       properties:
         count:

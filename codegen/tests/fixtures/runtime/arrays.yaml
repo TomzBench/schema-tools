@@ -8,7 +8,7 @@ components:
     # Leaf struct for array-of-objects tests
     point:
       type: object
-      x-st-generate: point
+      x-jsmn-generate: point
       required: [x, y]
       properties:
         x: { type: integer, format: int32 }
@@ -18,7 +18,7 @@ components:
     # Dims: inner=3, middle=4, outer=5
     array_combos:
       type: object
-      x-st-generate: array_combos
+      x-jsmn-generate: array_combos
       required: [d_vvv, d_vvf, d_vfv, d_vff, d_fvv, d_fvf, d_ffv, d_fff]
       properties:
         # vvv: vla(5) -> vla(4) -> vla(3) -> u32
@@ -132,7 +132,7 @@ components:
     # Top-level VLA of structs
     top_vla_points:
       type: array
-      x-st-generate: top_vla_points
+      x-jsmn-generate: top_vla_points
       maxItems: 8
       items:
         $ref: "forge://e2e/arrays/v0#/components/schemas/point"
@@ -140,7 +140,7 @@ components:
     # Arrays of objects — fixed and VLA
     array_of_objects:
       type: object
-      x-st-generate: array_of_objects
+      x-jsmn-generate: array_of_objects
       required: [fixed_points, vla_points]
       properties:
         # Fixed array of structs

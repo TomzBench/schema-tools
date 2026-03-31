@@ -1,7 +1,7 @@
 #include "gen_test.h"
 #include "unity.h"
-#define ST_HAS_INT64
-#define ST_HAS_FLOAT
+#define JT_HAS_INT64
+#define JT_HAS_FLOAT
 #include "runtime.c"
 
 void
@@ -15,16 +15,16 @@ tearDown(void)
 }
 
 // clang-format off
-#define ST_UINT_TESTS(X)                                                   \
+#define JT_UINT_TESTS(X)                                                   \
     X(u64,  uint64_t,  "18446744073709551615", "18446744073709551616")
 
-#define ST_INT_TESTS(X)                                                    \
+#define JT_INT_TESTS(X)                                                    \
     X(i64,  int64_t,   "9223372036854775807",  "-9223372036854775808",     \
                        "9223372036854775808",  "-9223372036854775809")
 // clang-format on
 
-ST_UINT_TESTS(GEN_UINT_TEST)
-ST_INT_TESTS(GEN_INT_TEST)
+JT_UINT_TESTS(GEN_UINT_TEST)
+JT_INT_TESTS(GEN_INT_TEST)
 
 void
 test_tok_float_basic(void)
@@ -101,8 +101,8 @@ int
 main(void)
 {
     UNITY_BEGIN();
-    ST_UINT_TESTS(REG_UINT_TEST)
-    ST_INT_TESTS(REG_INT_TEST)
+    JT_UINT_TESTS(REG_UINT_TEST)
+    JT_INT_TESTS(REG_INT_TEST)
     RUN_TEST(test_tok_float_basic);
     RUN_TEST(test_tok_float_exponent);
     RUN_TEST(test_tok_float_reject);

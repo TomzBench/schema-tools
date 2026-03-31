@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
-project(schema-tools-e2e LANGUAGES C)
+project(jsmn-tools-e2e LANGUAGES C)
 
-# Load schema-tools cmake modules
+# Load jsmn-tools cmake modules
 find_program(python3 python REQUIRED)
 execute_process(
-    COMMAND python -m schema_tools.cli --cmake-dir OUTPUT_VARIABLE SCHEMA_TOOLS_CMAKE_MODULES_DIR
+    COMMAND python -m jsmn_tools.cli --cmake-dir OUTPUT_VARIABLE JSMN_TOOLS_CMAKE_MODULES_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-find_package(SchemaTools REQUIRED CONFIG HINTS "${SCHEMA_TOOLS_CMAKE_MODULES_DIR}")
-#schema_tools_generate(foo OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/jsmn-runtime)
+find_package(JsmnTools REQUIRED CONFIG HINTS "${JSMN_TOOLS_CMAKE_MODULES_DIR}")
+#jsmn_tools_generate(foo OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/jsmn-runtime)
 
 # NOTE we peak into runtime.c files, this is more of a unit test.
 cmake_path(SET workspace NORMALIZE "${CMAKE_SOURCE_DIR}/../../../")
@@ -25,11 +25,11 @@ enable_testing()
 # cmake-format: off
 file(GLOB specs "${fixtures}/*.yaml")
 message(STATUS "specs: ${fixtures} ${specs}")
-schema_tools_generate(TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
+jsmn_tools_generate(TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
 								${templates}/runtime.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.h
 								${templates}/jsmn.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h
-								${templates}/schema_generated.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.h
-								${templates}/schema_generated.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.c
+								${templates}/jsmn_generated.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h
+								${templates}/jsmn_generated.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c
 					  SPECS ${specs}
 					  TARGET runtime_source)
 # cmake-format: on
@@ -68,10 +68,10 @@ add_library(
     ${CMAKE_CURRENT_BINARY_DIR}/runtime.h #
     ${CMAKE_CURRENT_BINARY_DIR}/runtime.c #
     ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h #
-    ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.h #
-    ${CMAKE_CURRENT_BINARY_DIR}/schema_generated.c #
+    ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h #
+    ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c #
 )
-target_compile_options(runtime PUBLIC -DST_HAS_FLOAT -DST_HAS_INT64)
+target_compile_options(runtime PUBLIC -DJT_HAS_FLOAT -DJT_HAS_INT64)
 
 add_executable(test_generated test_generated.c)
 target_link_libraries(test_generated PRIVATE unity::framework runtime)

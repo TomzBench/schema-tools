@@ -1,8 +1,8 @@
-# Schema Tools
+# Jsmn Tools
 
 ## Intro
 
-schema-tools is a code generation project. schema-tools generates code by
+jsmn-tools is a code generation project. jsmn-tools generates code by
 crawling OpenAPI specifications and AsyncAPI specifications for "JSON Schemas".
 Code generation must be explicitly declared via OpenAPI and AsyncAPI extension.
 
@@ -32,7 +32,7 @@ have a 30-second conversation than undo a bad design later.
 
 ```
 codegen/
-  src/schema_tools/
+  src/jsmn_tools/
     cli.py          # CLI entry point
     bundle.py       # Bundle logic for code generation
     node/           # Node types, behaviors, locations, refs

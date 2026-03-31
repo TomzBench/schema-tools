@@ -1,1 +1,0 @@
-"""schema-tools code generator."""

@@ -1,7 +1,7 @@
 [run]
-source = schema_tools
+source = jsmn_tools
 
 [report]
 omit =
-    codegen/src/schema_tools/__main__.py
-    codegen/src/schema_tools/cli.py
+    codegen/src/jsmn_tools/__main__.py
+    codegen/src/jsmn_tools/cli.py

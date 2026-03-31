@@ -24,7 +24,7 @@ ignore = [
 ]
 
 [lint.isort]
-known-first-party = ["schema-tools"]
+known-first-party = ["jsmn_tools"]
 
 [format]
 quote-style = "double"

@@ -3,8 +3,8 @@ from textwrap import dedent
 from typing import Any
 
 import pytest
-from schema_tools.lang.jsmn.flatten import flatten_with_resolver
-from schema_tools.lang.jsmn.render import Renderer
+from jsmn_tools.lang.jsmn.flatten import flatten_with_resolver
+from jsmn_tools.lang.jsmn.render import Renderer
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
@@ -23,21 +23,21 @@ def registry(request) -> Registry:
     return registry
 
 
-def test_renderer_schema_generated_decl(registry: Registry, snapshot) -> None:
+def test_renderer_jsmn_generated_decl(registry: Registry, snapshot) -> None:
     """Render components"""
     specs = [r.contents for r in registry.values()]
     result = flatten_with_resolver(*specs, resolver=registry.resolver())
     renderer = Renderer(result.decls)
-    tpl = "{% include 'schema_generated.h' %}"
+    tpl = "{% include 'jsmn_generated.h' %}"
     assert renderer.render(tpl) == snapshot
 
 
-def test_renderer_schema_generated_impl(registry: Registry, snapshot) -> None:
+def test_renderer_jsmn_generated_impl(registry: Registry, snapshot) -> None:
     """Render components"""
     specs = [r.contents for r in registry.values()]
     result = flatten_with_resolver(*specs, resolver=registry.resolver())
     renderer = Renderer(result.decls)
-    tpl = "{% include 'schema_generated.c' %}"
+    tpl = "{% include 'jsmn_generated.c' %}"
     assert renderer.render(tpl) == snapshot
 
 
