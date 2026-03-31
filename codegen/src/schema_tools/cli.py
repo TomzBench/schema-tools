@@ -49,8 +49,8 @@ def _generate(args: argparse.Namespace) -> None:
     compiled = flatten_with_resolver(*specs, resolver=registry.resolver())
     renderer = Renderer(compiled.decls, extra_env=extra_env)
     for src, out in args.templates:
-        tpl = Path(src).read_text()
-        Path(out).write_text(renderer.render(tpl))
+        tpl = Path(src).read_text(encoding="utf-8")
+        Path(out).write_text(renderer.render(tpl), encoding="utf-8")
 
 
 def main() -> None:

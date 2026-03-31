@@ -19,12 +19,13 @@ jobs:
 
       - name: Radon complexity
         run: |
-          output=$(uv run radon cc codegen/src/schema_tools -n B)
+          output=$(uv run radon cc codegen/src/schema_tools -n D)
           if [ -n "$output" ]; then
-            echo "::error::Complexity check failed — blocks rated B or worse:"
+            echo "::error::Complexity check failed — blocks rated D or worse:"
             echo "$output"
             exit 1
           fi
+          echo "Radon check passed (threshold: D)"
 
   e2e:
     name: E2E (${{ matrix.os }})

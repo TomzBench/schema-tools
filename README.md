@@ -1,6 +1,6 @@
 # schema-tools
 
-[![CI](https://github.com/altronix/schema-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/altronix/schema-tools/actions/workflows/ci.yml)
+[![CI](https://github.com/TomzBench/schema-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/TomzBench/schema-tools/actions/workflows/ci.yml)
 
 A code generator for JSON parsing in C.
 
