@@ -32,7 +32,7 @@ _SCHEMA_KEYWORDS: dict[str, tuple[Node[Any], Behavior]] = {
     "dependentSchemas":         (map_schema, _NO_BHV),
     # Single sub-schema keywords
     "items":                    (schema, _NO_BHV),
-    "additionalProperties":    (schema, _NO_BHV),
+    "additionalProperties":     (schema, _NO_BHV),
     "not":                      (schema, _NO_BHV),
     "if":                       (schema, _NO_BHV),
     "then":                     (schema, _NO_BHV),

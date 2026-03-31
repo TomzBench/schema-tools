@@ -123,6 +123,6 @@ def bundle(scheme: str, workspace: list[Path] | list[str]) -> Registry:
         _read_resource(spec, scheme, cfg["name"], res["name"], res["version"])
         for cfg in configs
         for res in cfg["resources"]
-        for spec in res["openapi"]
+        for spec in [*res["openapi"], *res["asyncapi"]]
     ]
     return content @ Registry()

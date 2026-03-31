@@ -1,0 +1,35 @@
+asyncapi: "3.0.0"
+info:
+  title: Test AsyncAPI Components
+  version: "0.1.0"
+components:
+  schemas:
+    SensorReading:
+      type: object
+      x-jsmn-generate: sensor_reading
+      required:
+        - value
+        - timestamp
+      properties:
+        value:
+          type: number
+          format: double
+        timestamp:
+          type: integer
+          format: uint64
+  messages:
+    temperatureReading:
+      payload:
+        $ref: "#/components/schemas/SensorReading"
+      headers:
+        type: object
+        properties:
+          traceId:
+            type: string
+  messageTraits:
+    commonHeaders:
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string

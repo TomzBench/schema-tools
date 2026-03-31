@@ -20,7 +20,7 @@ _param_key = identity_key("in", "name")
 
 class OpenAPIKind(StrEnum):
     # Object nodes
-    ROOT = "root"
+    ROOT = "openapi"
     INFO = "info"
     COMPONENTS = "components"
     PATH_ITEM = "path_item"

@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urldefrag
 
 from jsmn_tools.lang.jsmn.ir import CArray, CDecl, CStruct, CType, Dim, Field
-from jsmn_tools.node import Location
-from jsmn_tools.spec import OPENAPI_3_1, OpenApi31Keys
+from jsmn_tools.node import Location, ObjectNode
+from jsmn_tools.spec import OPENAPI_3_1
 from jsmn_tools.walk import Step, walk
 
 if TYPE_CHECKING:
@@ -26,7 +26,13 @@ class BrokenRef:
     ref: str
 
 
-type FlattenError = ConstraintViolation | BrokenRef
+@dataclass
+class UnsupportedSchemaFormat:
+    location: Location
+    schema_format: str
+
+
+type FlattenError = ConstraintViolation | BrokenRef | UnsupportedSchemaFormat
 
 
 @dataclass
@@ -73,10 +79,6 @@ class TypeKey(StrEnum):
     STRING = "string"
     OBJECT = "object"
     ARRAY = "array"
-
-
-# Walking OpenAPI 3.1 key words
-type StepSpec = Step[OpenApi31Keys]
 
 
 def _follow_ref(
@@ -223,23 +225,21 @@ def _walk_any(
         return FlattenResult.empty()
 
 
-# Walk spec and get locations of  all structs
-def flatten_with_resolver(*specs: Any, resolver: Resolver) -> FlattenResult:
-    def step(acc: FlattenResult, s: StepSpec) -> FlattenResult:
-        return acc | _walk_any(s.value, s.location, resolver)
+# Walk spec and get locations of all structs
+def flatten_with_resolver[K: str](
+    *specs: Any,
+    resolver: Resolver,
+    draft: ObjectNode[K] = OPENAPI_3_1,
+) -> FlattenResult:
+    def step(acc: FlattenResult, s: Step[K]) -> FlattenResult:
+        if s.kind == "schema_enter" and isinstance(s.value, dict):
+            if "schemaFormat" in s.value:
+                e = UnsupportedSchemaFormat(s.location, s.value["schemaFormat"])
+                acc.errors.append(e)
+            elif "x-jsmn-generate" in s.value:
+                ty = s.value.get("type")
+                if ty == "object" or ty == "array" or "allOf" in s.value:
+                    acc |= _walk_any(s.value, s.location, resolver)
+        return acc
 
-    # Filter in all object and array schemas
-    def is_schema(step: StepSpec) -> bool:
-        if (
-            step.kind == "schema_enter"
-            and isinstance(step.value, dict)
-            and "x-jsmn-generate" in step.value
-        ):
-            ty = step.value.get("type")
-            return ty == "object" or ty == "array" or "allOf" in step.value
-        else:
-            return False
-
-    init = FlattenResult.empty()
-    steps = filter(is_schema, walk(*specs, draft=OPENAPI_3_1))
-    return reduce(step, steps, init)
+    return reduce(step, walk(*specs, draft=draft), FlattenResult.empty())

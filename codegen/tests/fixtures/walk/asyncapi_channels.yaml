@@ -1,0 +1,46 @@
+asyncapi: "3.0.0"
+info:
+  title: Test AsyncAPI
+  version: "0.1.0"
+channels:
+  temperature:
+    address: sensors/temperature
+    messages:
+      reading:
+        payload:
+          type: object
+          required:
+            - value
+            - unit
+          properties:
+            value:
+              type: number
+              format: double
+            unit:
+              type: string
+        headers:
+          type: object
+          properties:
+            correlationId:
+              type: string
+    parameters:
+      sensorId:
+        enum:
+          - sensor-b
+          - sensor-a
+        default: sensor-a
+operations:
+  publishTemperature:
+    action: send
+    channel:
+      $ref: "#/channels/temperature"
+servers:
+  production:
+    host: mqtt.example.com
+    protocol: mqtt
+    variables:
+      env:
+        enum:
+          - prod
+          - staging
+        default: prod

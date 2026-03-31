@@ -1,37 +1,60 @@
 import pytest
+
 from jsmn_tools.node import Ref
+
+OPENAPI_SUFFIX = ".openapi.yaml"
+ASYNCAPI_SUFFIX = ".asyncapi.yaml"
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    "raw, suffix, expected",
     [
-        # local — unchanged
-        ("#/components/schemas/Foo", "#/components/schemas/Foo"),
+        # local — unchanged (suffix irrelevant)
+        (
+            "#/components/schemas/Foo",
+            OPENAPI_SUFFIX,
+            "#/components/schemas/Foo",
+        ),
         # relative — collapse to fragment
         (
             "./auth.openapi.yaml#/components/schemas/Token",
+            OPENAPI_SUFFIX,
             "#/components/schemas/Token",
         ),
         # relative, no fragment — pass through unchanged (authoring mistake)
-        ("./auth.openapi.yaml", "./auth.openapi.yaml"),
-        # scheme — rewrite to relative output file
+        ("./auth.openapi.yaml", OPENAPI_SUFFIX, "./auth.openapi.yaml"),
+        # scheme — rewrite to relative output file (openapi suffix)
         (
             "forge://sdk/common/v0#/components/schemas/Bar",
+            OPENAPI_SUFFIX,
             "./sdk.openapi.yaml#/components/schemas/Bar",
         ),
+        # scheme — rewrite to relative output file (asyncapi suffix)
+        (
+            "forge://sdk/common/v0#/components/schemas/Bar",
+            ASYNCAPI_SUFFIX,
+            "./sdk.asyncapi.yaml#/components/schemas/Bar",
+        ),
         # scheme, no fragment
-        ("forge://sdk/common/v0", "./sdk.openapi.yaml"),
+        ("forge://sdk/common/v0", OPENAPI_SUFFIX, "./sdk.openapi.yaml"),
+        # scheme, no fragment (asyncapi)
+        ("forge://sdk/common/v0", ASYNCAPI_SUFFIX, "./sdk.asyncapi.yaml"),
         # external URL — unchanged
         (
             "https://example.com/schema.json#/Foo",
+            OPENAPI_SUFFIX,
             "https://example.com/schema.json#/Foo",
         ),
         # different scheme — unchanged
-        ("other://mod/res/v1#/path", "other://mod/res/v1#/path"),
+        (
+            "other://mod/res/v1#/path",
+            OPENAPI_SUFFIX,
+            "other://mod/res/v1#/path",
+        ),
     ],
 )
-def test_normalize(raw: str, expected: str) -> None:
-    assert Ref(raw).normalize("forge") == expected
+def test_normalize(raw: str, suffix: str, expected: str) -> None:
+    assert Ref(raw).normalize("forge", suffix) == expected
 
 
 def test_is_local() -> None:

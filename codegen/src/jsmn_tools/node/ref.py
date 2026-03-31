@@ -24,7 +24,7 @@ class Ref:
     def is_relative(self) -> bool:
         return self.raw.startswith("./")
 
-    def normalize(self, scheme: str) -> str:
+    def normalize(self, scheme: str, suffix: str) -> str:
         if self.is_local:
             return self.raw
         if self.is_relative:
@@ -37,6 +37,6 @@ class Ref:
         if m and m.group("scheme") == scheme:
             module = m.group("module")
             fragment = m.group("fragment")
-            base = f"./{module}.openapi.yaml"
+            base = f"./{module}{suffix}"
             return f"{base}#{fragment}" if fragment else base
         return self.raw

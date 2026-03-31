@@ -79,10 +79,7 @@ class ObjectNode[E: str]:
     def kind(self) -> E:
         return self._kind
 
-    def configure(
-        self,
-        table: dict[str, tuple[Node[Any], Behavior]],
-    ) -> None:
+    def configure(self, table: dict[str, tuple[Node[Any], Behavior]]) -> None:
         self._table = table
 
     def child(self, prop: str) -> tuple[Node[Any], Behavior]:
