@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    name: Tests & Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+
+      - name: Pytest with coverage
+        run: uv run pytest --cov=schema_tools --cov-report=term-missing --cov-fail-under=90
+
+      - name: Radon complexity
+        run: |
+          output=$(uv run radon cc codegen/src/schema_tools -n B)
+          if [ -n "$output" ]; then
+            echo "::error::Complexity check failed — blocks rated B or worse:"
+            echo "$output"
+            exit 1
+          fi
+
+  e2e:
+    name: E2E (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - run: uv sync
+
+      - name: Configure
+        run: uv run cmake -B build -S codegen/tests/e2e -G Ninja
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
