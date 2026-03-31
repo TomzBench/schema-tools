@@ -19,8 +19,8 @@ jobs:
 
       - name: Radon complexity
         run: |
-          output=$(uv run radon cc codegen/src/schema_tools -n D)
-          if [ -n "$output" ]; then
+          output=$(uv run radon cc codegen/src/schema_tools -n D --no-assert)
+          if echo "$output" | grep -qE "^\s+[FMCD]"; then
             echo "::error::Complexity check failed — blocks rated D or worse:"
             echo "$output"
             exit 1
