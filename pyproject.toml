@@ -23,6 +23,7 @@ dev = [
     "mypy>=1.13.0",
     "pyright>=1.1.408",
     "pytest>=9.0.2",
+    "pytest-cov>=6.0",
     "syrupy>=4.0",
     "radon>=6.0.1",
     "ruff>=0.8.0",

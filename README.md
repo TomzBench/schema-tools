@@ -1,3 +1,17 @@
+# schema-tools
+
+A code generator for JSON parsing in C.
+
+## Testing
+
+```bash
+uv run pytest                        # unit + integration
+uv run pytest --cov=schema_tools     # with coverage
+uv run pytest codegen/tests/unit     # unit only
+uv run radon cc codegen/src -a -nb   # cyclomatic complexity
+uv run radon mi codegen/src -nb      # maintainability index
+```
+
 # Building the docs
 
 ## Prerequisites
