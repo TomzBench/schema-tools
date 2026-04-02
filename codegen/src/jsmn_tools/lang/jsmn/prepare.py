@@ -259,3 +259,9 @@ def codegen(reg: Registry) -> CodegenBundle:
         strings=list(strings.strings()),
         resolver=resolver,
     )
+
+
+# NOTE currently the bundle pipeline for doc tooling is join(). However, should 
+#      more preprocessing happen for the doc step, we would add prepare.docs -> 
+#      DocBundle in the future
+# def docs(*specs, draft) -> DocBundle: ...
