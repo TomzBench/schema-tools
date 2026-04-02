@@ -1,5 +1,5 @@
 openapi: "3.1.0"
-$id: "forge://sensors/temperature/v0"
+$id: "zephyr://sensors/temperature/v0"
 info:
   title: Sensors Temperature
   version: "0.1.0"
@@ -27,4 +27,4 @@ components:
           type: number
           format: double
         status:
-          $ref: "forge://sdk/common/v0#/components/schemas/device_status"
+          $ref: "zephyr://sdk/common/v0#/components/schemas/device_status"

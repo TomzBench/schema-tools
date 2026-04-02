@@ -1,5 +1,5 @@
 openapi: "3.1.0"
-$id: "forge://sdk/auth/v0"
+$id: "zephyr://sdk/auth/v0"
 info:
   title: SDK Auth
   version: "0.1.0"

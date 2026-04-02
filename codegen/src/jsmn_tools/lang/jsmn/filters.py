@@ -25,6 +25,8 @@ from .primitives import Primitive
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from referencing._core import Resolver
+
 
 # ── Rendering maps ────────────────────────────────────────────────────
 
@@ -51,7 +53,10 @@ _ARRAY_KINDS: dict[ArrayKind, str] = {
 }
 
 
-def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
+def tests(
+    user_decls: list[CDecl],
+    resolver: Resolver,
+) -> dict[str, Callable[..., Any]]:
     cdecl_index = {v.ctype.name: v for v in user_decls}
     array_names = {v.ctype.name for v in user_decls if isinstance(v, CArray)}
 
@@ -75,6 +80,25 @@ def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
     def is_union_ctype(ctype: CType | tuple[Variant, ...]) -> bool:
         return not isinstance(ctype, CType)
 
+    # Tag lookup is a single resolver hit — no recursion. The decl's
+    # location points to the schema where x-jsmn-generate was found,
+    # and x-jsmn-tag must be co-located on that same schema. Tags on
+    # $ref targets or allOf branches are not inherited. A future
+    # validation pass could warn when x-jsmn-tag appears on a schema
+    # without x-jsmn-generate (misplaced tag).
+    def is_tagged(decl: CDecl, tag: str) -> bool:
+        try:
+            spec_id = decl.loc[0]
+            resolved = resolver.lookup(spec_id)
+            path = type(decl.loc)(decl.loc[1:])
+            schema = path.resolve(resolved.contents)
+            tags = schema.get("x-jsmn-tag", [])
+            if isinstance(tags, str):
+                tags = [tags]
+            return tag in tags
+        except (KeyError, IndexError, LookupError):
+            return False
+
     return {
         "struct_decl": is_struct_decl,
         "union_decl": is_union_decl,
@@ -82,6 +106,7 @@ def tests(user_decls: list[CDecl]) -> dict[str, Callable[..., Any]]:
         "array_decl": is_array_decl,
         "user_decl": is_user_decl,
         "union_ctype": is_union_ctype,
+        "tagged": is_tagged,
     }
 
 
