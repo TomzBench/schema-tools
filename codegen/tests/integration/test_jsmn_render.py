@@ -1,57 +1,71 @@
 from pathlib import Path
 from textwrap import dedent
-from typing import Any
 
 import pytest
-from referencing import Registry, Resource
+from jinja2 import Environment as JinjaEnvironment
+from referencing import Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.jsmn.prepare import CodegenBundle, codegen
-from jsmn_tools.jsmn.render import Renderer
+from jsmn_tools.environment import Environment
+from jsmn_tools.jsmn.render import hoist_includes
 
 yaml = YAML(typ="safe")
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "render"
 
 
 @pytest.fixture(params=["jsmn", "jsmn-vla", "jsmn-every-type"])
-def compiled(request) -> CodegenBundle:
+def env(request) -> JinjaEnvironment:
     spec = FIXTURES / f"{request.param}.openapi.yaml"
     resource = Resource.from_contents(
         yaml.load(spec), default_specification=DRAFT202012
     )
-    registry: Registry[Any] = [resource] @ Registry()
-    return codegen(registry)
+    jsmn = Environment.from_specifications(resource)
+    jinja_env = JinjaEnvironment(
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    jsmn.extend(jinja_env, prefix="jsmn_")
+    return jinja_env
 
 
-def test_renderer_jsmn_generated_decl(compiled: CodegenBundle, snapshot) -> None:
+@pytest.fixture()
+def empty_env() -> JinjaEnvironment:
+    jsmn = Environment.empty()
+    jinja_env = JinjaEnvironment(
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    jsmn.extend(jinja_env, prefix="jsmn_")
+    return jinja_env
+
+
+def test_renderer_jsmn_generated_decl(env: JinjaEnvironment, snapshot) -> None:
     """Render components"""
-    renderer = Renderer(compiled)
     tpl = "{% include 'jsmn_generated.h' %}"
-    assert renderer.render(tpl) == snapshot
+    assert env.from_string(tpl).render() == snapshot
 
 
-def test_renderer_jsmn_generated_impl(compiled: CodegenBundle, snapshot) -> None:
+def test_renderer_jsmn_generated_impl(env: JinjaEnvironment, snapshot) -> None:
     """Render components"""
-    renderer = Renderer(compiled)
     tpl = "{% include 'jsmn_generated.c' %}"
-    assert renderer.render(tpl) == snapshot
+    assert env.from_string(tpl).render() == snapshot
 
 
-def test_renderer_runtime_snapshot(snapshot) -> None:
+def test_renderer_runtime_snapshot(empty_env: JinjaEnvironment, snapshot) -> None:
     """Runtime files are loadable via prefix loader with includes stripped."""
-    renderer = Renderer(CodegenBundle.empty())
     tpl = dedent("""\
         {% include 'jsmn.h' %}
         {% include 'runtime.h' %}
         {% include 'runtime.c' %}
         """)
-    assert renderer.render(tpl) == snapshot
+    assert empty_env.from_string(tpl).render() == snapshot
 
 
-def test_renderer_hoist_includes(snapshot) -> None:
+def test_renderer_hoist_includes(empty_env: JinjaEnvironment, snapshot) -> None:
     """System includes are deduplicated and hoisted to the top."""
-    renderer = Renderer(CodegenBundle.empty())
     tpl = dedent("""\
         #include <stdint.h>
         #include <stdbool.h>
@@ -62,4 +76,5 @@ def test_renderer_hoist_includes(snapshot) -> None:
         #include <stdbool.h>
         #include <stddef.h>
         """)
-    assert renderer.render(tpl, hoist_includes=True) == snapshot
+    result = hoist_includes(empty_env.from_string(tpl).render())
+    assert result == snapshot

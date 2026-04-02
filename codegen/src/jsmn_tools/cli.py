@@ -6,12 +6,12 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from referencing import Registry, Resource
+from jinja2 import Environment as JinjaEnvironment
+from referencing import Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.jsmn import prepare
-from jsmn_tools.jsmn.render import Renderer
+from jsmn_tools.environment import Environment
 
 JSMN_RUNTIME_DIR = files("jsmn_tools").joinpath("jsmn", "runtime")
 RUNTIME_FILES = ("runtime.c", "runtime.h", "jsmn.h")
@@ -41,18 +41,22 @@ def _cmake_dir() -> str:
     raise FileNotFoundError("Cannot locate jsmn tools cmake modules")
 
 
+
 def _generate(args: argparse.Namespace) -> None:
     resources = [parse_spec(s) for s in args.specs]
     extra_env = dict(e.split("=", 1) for e in args.env)
-    registry: Registry[Any] = resources @ Registry()
-    compiled = prepare.codegen(registry)
-    opts: dict[str, Any] = {"extra_env": extra_env}
-    if args.prefix:
-        opts["prefix"] = args.prefix
-    renderer = Renderer(compiled, **opts)
+    jsmn = Environment.from_specifications(*resources)
+    env = JinjaEnvironment(
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    jsmn.extend(env, prefix=args.prefix or "jsmn_")
+    if extra_env:
+        env.globals.update(extra_env)
     for src, out in args.templates:
         tpl = Path(src).read_text(encoding="utf-8")
-        Path(out).write_text(renderer.render(tpl), encoding="utf-8")
+        Path(out).write_text(env.from_string(tpl).render(), encoding="utf-8")
 
 
 def main() -> None:
