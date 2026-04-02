@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 from .descriptor import (
@@ -26,6 +27,21 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from referencing._core import Resolver
+
+
+# ── General-purpose filters ──────────────────────────────────────────
+
+
+def snake_case(s: str, shouty: bool = False) -> str:
+    """Convert to snake_case. shouty=True gives UPPER_SNAKE_CASE."""
+    result = re.sub(r"(?<!^)(?=[A-Z])", "_", s).replace("-", "_")
+    return result.upper() if shouty else result.lower()
+
+
+def camel_case(s: str, upper: bool = False) -> str:
+    """Convert to camelCase. upper=True gives PascalCase."""
+    result = re.sub(r"[_-]", " ", snake_case(s)).title().replace(" ", "")
+    return result[0].upper() + result[1:] if upper else result[0].lower() + result[1:]
 
 
 # ── Rendering maps ────────────────────────────────────────────────────
@@ -113,6 +129,7 @@ def tests(
 def filters(
     table: dict[Key, Descriptors],
     decls: list[CDecl],
+    resolver: Resolver,
 ) -> dict[str, Callable[..., Any]]:
     """Return all template filters (stateless + table-rendering closures)."""
     # ── Build struct index for positional lookups ─────────────────────
@@ -215,6 +232,16 @@ def filters(
     def arrays(ds: list[Descriptors]) -> list[ArrayDescriptor]:
         return [d for d in ds if isinstance(d, ArrayDescriptor)]
 
+    # ── Key filter (descriptor index by schema name) ────────────────────
+
+    def key(name: str) -> int:
+        return struct_index[name]
+
+    # ── JSON pointer filter (resolve $ref via resolver) ───────────────
+
+    def json_pointer(ref: str) -> Any:
+        return resolver.lookup(ref).contents
+
     result: dict[str, Callable[..., Any]] = {
         "dimensions": dimensions,
         "comment": comment,
@@ -230,6 +257,10 @@ def filters(
         "fields": fields,
         "arrays": arrays,
         "qualifier": qualifier,
+        "snake_case": snake_case,
+        "camel_case": camel_case,
+        "key": key,
+        "json_pointer": json_pointer,
     }
 
     return result

@@ -6,7 +6,12 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.jsmn.filters import tests as jinja_tests
+from jsmn_tools.jsmn.filters import (
+    camel_case,
+    filters,
+    snake_case,
+    tests as jinja_tests,
+)
 from jsmn_tools.jsmn.prepare import codegen
 
 yaml = YAML(typ="safe")
@@ -67,3 +72,68 @@ def test_tagged_missing(tag_tests, originals) -> None:
     """No x-jsmn-tag on schema matches nothing."""
     decl = _find_decl(tag_tests, originals, "not_tagged")
     assert tag_tests["tagged"](decl, "network") is False
+
+
+# ── snake_case ───────────────────────────────────────────────────────
+
+
+def test_snake_case() -> None:
+    assert snake_case("deviceStatus") == "device_status"
+    assert snake_case("DeviceStatus") == "device_status"
+    assert snake_case("device-status") == "device_status"
+    assert snake_case("already_snake") == "already_snake"
+
+
+def test_snake_case_shouty() -> None:
+    assert snake_case("deviceStatus", shouty=True) == "DEVICE_STATUS"
+    assert snake_case("device-status", shouty=True) == "DEVICE_STATUS"
+
+
+# ── camel_case ───────────────────────────────────────────────────────
+
+
+def test_camel_case() -> None:
+    assert camel_case("device_status") == "deviceStatus"
+    assert camel_case("device-status") == "deviceStatus"
+
+
+def test_camel_case_upper() -> None:
+    assert camel_case("device_status", upper=True) == "DeviceStatus"
+
+
+# ── key ──────────────────────────────────────────────────────────────
+
+
+def test_key() -> None:
+    """key filter returns descriptor table index for a schema name."""
+    spec = FIXTURES / "jsmn-tags.openapi.yaml"
+    resource = Resource.from_contents(
+        yaml.load(spec), default_specification=DRAFT202012
+    )
+    registry: Registry[Any] = [resource] @ Registry()
+    compiled = codegen(registry)
+    fns = filters(compiled.table, compiled.declarations, compiled.resolver)
+    # all tagged schemas should have a key
+    for decl in compiled.original:
+        idx = fns["key"](decl.ctype.name)
+        assert isinstance(idx, int)
+
+
+# ── json_pointer ─────────────────────────────────────────────────────
+
+
+def test_json_pointer() -> None:
+    """json_pointer filter resolves $ref via resolver."""
+    spec = FIXTURES / "jsmn-tags.openapi.yaml"
+    resource = Resource.from_contents(
+        yaml.load(spec), default_specification=DRAFT202012
+    )
+    registry: Registry[Any] = [resource] @ Registry()
+    compiled = codegen(registry)
+    fns = filters(compiled.table, compiled.declarations, compiled.resolver)
+    result = fns["json_pointer"](
+        "forge://test/tags/v0#/components/schemas/tagged_string"
+    )
+    assert result["type"] == "object"
+    assert result["x-jsmn-generate"] == "tagged_string"
+    assert result["x-jsmn-tag"] == "network"

@@ -1,6 +1,3 @@
-# from jsmn_tools import Environment
-# let jsmn = Environment.from_specifications(resources)
-# generator.extend_environment(env)
 from __future__ import annotations
 
 import re
@@ -102,7 +99,9 @@ class Environment:
             loaders = [runtime_loader, package_loader]
         other.loader = ChoiceLoader(loaders)
         other.tests.update(tests(self.original, self.resolver))
-        other.filters.update(filters(self.table, self.declarations))
+        other.filters.update(
+            filters(self.table, self.declarations, self.resolver)
+        )
         descriptors = sorted(self.table.values(), key=lambda d: d.key.pos)
         tpl_globals = {
             "declarations": self.declarations,
