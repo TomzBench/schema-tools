@@ -28,7 +28,7 @@ def _normalize(
         for key, val in obj.items():
             if key == "$ref" and not node.opaque:
                 out[key] = (
-                    Ref(val).normalize(scheme or "forge", suffix)
+                    Ref(val).normalize(scheme or "jsmn-tools", suffix)
                     if isinstance(val, str)
                     else val
                 )
