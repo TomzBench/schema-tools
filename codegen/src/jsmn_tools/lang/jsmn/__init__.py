@@ -1,11 +1,9 @@
+from jsmn_tools.lang.jsmn.prepare import resolve_ctype
+
 from .ir import CStruct, CType, Dim, Field, Variant
 from .mangle import mangle
-from .render import (
-    Renderer,
-    extend_decls,
-    resolve_ctype,
-    sort_decls,
-)
+from .prepare import resolve_ctype
+from .render import Renderer
 
 __all__ = [
     "CStruct",
@@ -14,8 +12,6 @@ __all__ = [
     "Field",
     "Renderer",
     "Variant",
-    "extend_decls",
     "mangle",
     "resolve_ctype",
-    "sort_decls",
 ]

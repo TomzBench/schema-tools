@@ -1,0 +1,44 @@
+openapi: "3.1.0"
+$id: "forge://test/tags/v0"
+info:
+  title: Tag Test
+  version: "0.1.0"
+paths: {}
+components:
+  schemas:
+    tagged_string:
+      x-jsmn-generate: "tagged_string"
+      x-jsmn-tag: "network"
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 32
+    tagged_list:
+      x-jsmn-generate: "tagged_list"
+      x-jsmn-tag:
+        - "network"
+        - "config"
+      type: object
+      required: [value]
+      properties:
+        value:
+          type: integer
+          format: uint32
+    tagged_empty:
+      x-jsmn-generate: "tagged_empty"
+      x-jsmn-tag: []
+      type: object
+      required: [flag]
+      properties:
+        flag:
+          type: boolean
+    not_tagged:
+      x-jsmn-generate: "not_tagged"
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+          format: uint16

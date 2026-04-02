@@ -1,4 +1,5 @@
 import pytest
+
 from jsmn_tools.lang.jsmn import (
     CType,
     Dim,
@@ -111,7 +112,9 @@ def test_resolve_object_ref() -> None:
 
 
 def test_resolve_single_vla() -> None:
-    assert resolve_ctype(CType("uint32_t", (Dim(0, 5),))) == CType("vla__u32__n5")
+    assert resolve_ctype(CType("uint32_t", (Dim(0, 5),))) == CType(
+        "vla__u32__n5"
+    )
 
 
 def test_resolve_nested_vla() -> None:

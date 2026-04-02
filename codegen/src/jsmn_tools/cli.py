@@ -10,7 +10,7 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.lang.jsmn.flatten import flatten_with_resolver
+from jsmn_tools.lang.jsmn import prepare
 from jsmn_tools.lang.jsmn.render import Renderer
 
 JSMN_RUNTIME_DIR = files("jsmn_tools").joinpath("lang", "jsmn", "runtime")
@@ -45,19 +45,20 @@ def _generate(args: argparse.Namespace) -> None:
     resources = [parse_spec(s) for s in args.specs]
     extra_env = dict(e.split("=", 1) for e in args.env)
     registry: Registry[Any] = resources @ Registry()
-    specs = [r.contents for r in registry.values()]
-    compiled = flatten_with_resolver(*specs, resolver=registry.resolver())
+    compiled = prepare.codegen(registry)
     opts: dict[str, Any] = {"extra_env": extra_env}
     if args.prefix:
         opts["prefix"] = args.prefix
-    renderer = Renderer(compiled.decls, **opts)
+    renderer = Renderer(compiled, **opts)
     for src, out in args.templates:
         tpl = Path(src).read_text(encoding="utf-8")
         Path(out).write_text(renderer.render(tpl), encoding="utf-8")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="jsmn-tools", description="jsmn tools")
+    parser = argparse.ArgumentParser(
+        prog="jsmn-tools", description="jsmn tools"
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     # Top level commands
