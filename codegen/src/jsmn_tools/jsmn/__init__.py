@@ -1,5 +1,3 @@
-from jsmn_tools.lang.jsmn.prepare import resolve_ctype
-
 from .ir import CStruct, CType, Dim, Field, Variant
 from .mangle import mangle
 from .prepare import resolve_ctype

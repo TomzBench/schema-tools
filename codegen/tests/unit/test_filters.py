@@ -6,8 +6,8 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.lang.jsmn.filters import tests as jinja_tests
-from jsmn_tools.lang.jsmn.prepare import codegen
+from jsmn_tools.jsmn.filters import tests as jinja_tests
+from jsmn_tools.jsmn.prepare import codegen
 
 yaml = YAML(typ="safe")
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "render"

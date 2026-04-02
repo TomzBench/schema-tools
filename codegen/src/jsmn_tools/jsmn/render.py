@@ -38,7 +38,7 @@ class Renderer:
             "runtime.c": read_and_strip(runtime_dir / "runtime.c"),
         }
         runtime_loader = DictLoader(runtime_mapping)
-        package_loader = PackageLoader("jsmn_tools", "lang/jsmn/templates")
+        package_loader = PackageLoader("jsmn_tools", "jsmn/templates")
         self._env = Environment(
             loader=ChoiceLoader([runtime_loader, package_loader]),
             keep_trailing_newline=True,

@@ -7,7 +7,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urldefrag
 
-from jsmn_tools.lang.jsmn.ir import CArray, CDecl, CStruct, CType, Dim, Field
+from jsmn_tools.jsmn.ir import CArray, CDecl, CStruct, CType, Dim, Field
 from jsmn_tools.node import Location, ObjectNode
 from jsmn_tools.spec import OPENAPI_3_1
 from jsmn_tools.walk import Step, walk

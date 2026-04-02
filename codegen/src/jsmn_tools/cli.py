@@ -10,10 +10,10 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.lang.jsmn import prepare
-from jsmn_tools.lang.jsmn.render import Renderer
+from jsmn_tools.jsmn import prepare
+from jsmn_tools.jsmn.render import Renderer
 
-JSMN_RUNTIME_DIR = files("jsmn_tools").joinpath("lang", "jsmn", "runtime")
+JSMN_RUNTIME_DIR = files("jsmn_tools").joinpath("jsmn", "runtime")
 RUNTIME_FILES = ("runtime.c", "runtime.h", "jsmn.h")
 
 yaml = YAML(typ="safe")

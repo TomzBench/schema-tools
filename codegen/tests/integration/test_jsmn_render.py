@@ -7,8 +7,8 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.lang.jsmn.prepare import CodegenBundle, codegen
-from jsmn_tools.lang.jsmn.render import Renderer
+from jsmn_tools.jsmn.prepare import CodegenBundle, codegen
+from jsmn_tools.jsmn.render import Renderer
 
 yaml = YAML(typ="safe")
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "render"

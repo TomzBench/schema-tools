@@ -1,6 +1,6 @@
 from typing import Any
 
-from jsmn_tools.lang.jsmn.flatten import (
+from jsmn_tools.jsmn.flatten import (
     UnsupportedSchemaFormat,
     flatten_with_resolver,
 )

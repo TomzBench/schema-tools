@@ -1,6 +1,6 @@
 import pytest
 
-from jsmn_tools.lang.jsmn import (
+from jsmn_tools.jsmn import (
     CType,
     Dim,
     Variant,
