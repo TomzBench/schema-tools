@@ -1,13 +1,12 @@
 from typing import Any
 
-from jsmn_tools.node import ROOT, Behavior, Location, Node
+from jsmn_tools.node import ROOT, Behavior, Location, Node, ObjectNode
 
 
-def prefixer(
+def prefixer[E: str](
     obj: dict[str, Any],
-    context: tuple[Node, Behavior],
-    loc: Location = ROOT,
     *,
+    draft: ObjectNode[E],
     prefix: str,
 ) -> dict[str, Any]:
     """Prepend *prefix* to every ``x-jsmn-type`` value and stamp
@@ -18,7 +17,8 @@ def prefixer(
     """
     if not prefix:
         return obj
-    return _prefixer(obj, context, loc, prefix=prefix)
+    root = (draft, Behavior(sort_key=None))
+    return _prefixer(obj, root, ROOT, prefix=prefix)
 
 
 def _prefixer(

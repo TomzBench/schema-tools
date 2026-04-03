@@ -13,6 +13,7 @@ from .asyncapi_3_0 import AsyncApi30Keys
 from .asyncapi_3_0 import obj_root as ASYNCAPI_3_0
 from .openapi_3_1 import OpenApi31Keys
 from .openapi_3_1 import obj_root as OPENAPI_3_1
+from .parse_draft import parse_draft
 
 __all__ = [
     "ASYNCAPI_3_0",
@@ -25,6 +26,7 @@ __all__ = [
     "SortKey",
     "canonical",
     "identity_key",
+    "parse_draft",
     "sort_set",
     "sort_set_by",
 ]

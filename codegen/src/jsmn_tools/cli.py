@@ -70,7 +70,12 @@ def _generate_zephyr(args: argparse.Namespace) -> None:
     config = parse_autoconfig(args.build_dir)
     workspace = parse_workspace()
     result = collect(workspace, config)
-    errors = render(result, prefix=args.prefix or "jsmn_")
+    errors = render(
+        result,
+        prefix=args.prefix or "jsmn_",
+        type_prefix=args.type_prefix,
+        autoconf=config,
+    )
     for e in result.errors + errors:
         print(f"warning: {e}", file=sys.stderr)
 
@@ -127,6 +132,11 @@ def main() -> None:
     zephyr_parser.add_argument(
         "--prefix",
         help="Function/type prefix (default: jsmn_)",
+    )
+    zephyr_parser.add_argument(
+        "--type-prefix",
+        default="",
+        help="Struct type prefix (e.g. atx_). Empty = no type prefixing.",
     )
 
     args = parser.parse_args()

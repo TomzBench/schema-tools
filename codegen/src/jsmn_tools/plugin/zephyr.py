@@ -14,6 +14,8 @@ from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
 from jsmn_tools.jsmn import Environment
+from jsmn_tools.spec import parse_draft
+from jsmn_tools.walk import prefixer
 
 
 def _require_west():
@@ -90,6 +92,7 @@ class Project(TypedDict):
     render: NotRequired[list[tuple[str, str]]]
     jinja_filters: NotRequired[dict[str, Callable[..., Any]]]
     jinja_tests: NotRequired[dict[str, Callable[..., bool]]]
+    jinja_globals: NotRequired[dict[str, Any]]
 
 
 class LoadedProject(Project):
@@ -157,7 +160,23 @@ def collect(workspace: list[Path], config: dict[str, str]) -> CollectResult:
     return CollectResult(resources @ Registry(), loaded_projects, errors)
 
 
-def render(result: CollectResult, prefix: str = "jsmn_") -> list[CollectErrors]:
+def _add_prefix_to_registry(prefix: str, registry: Registry) -> Registry:
+    resources: list[Resource] = []
+    for r in registry.values():
+        if d := parse_draft(r.contents):
+            contents = prefixer(r.contents, draft=d, prefix=prefix)
+            resources.append(Resource.from_contents(contents, DRAFT202012))
+        else:
+            resources.append(r)
+    return resources @ Registry()
+
+
+def render(
+    result: CollectResult,
+    prefix: str = "jsmn_",
+    type_prefix: str = "",
+    autoconf: dict[str, str] | None = None,
+) -> list[CollectErrors]:
     errors: list[CollectErrors] = []
     jinja_env = JinjaEnvironment(
         keep_trailing_newline=True,
@@ -165,7 +184,9 @@ def render(result: CollectResult, prefix: str = "jsmn_") -> list[CollectErrors]:
         lstrip_blocks=True,
     )
 
-    # -- pass 1: accumulate custom filters and tests across all plugins ------
+    # -- pass 1: accumulate custom filters, tests, and globals from plugins --
+    if autoconf is not None:
+        jinja_env.globals["autoconf"] = autoconf
     for prj in result.projects:
         module = prj["module"]
         for name, fn in prj.get("jinja_filters", {}).items():
@@ -178,9 +199,14 @@ def render(result: CollectResult, prefix: str = "jsmn_") -> list[CollectErrors]:
                 errors.append(JinjaTestExists(f"'{name}' from '{module}'"))
             else:
                 jinja_env.tests[name] = fn
+        jinja_env.globals.update(prj.get("jinja_globals", {}))
 
-    # -- pass 2: render each project with the shared environment -------------
-    jsmn_env = Environment.from_specifications(*result.registry.values())
+    # -- pass 2: apply type prefix and build environment --------------------
+    registry = result.registry
+    if type_prefix:
+        registry = _add_prefix_to_registry(type_prefix, registry)
+
+    jsmn_env = Environment.from_specifications(*registry.values())
     jsmn_env.extend(jinja_env, prefix=prefix)
     for prj in [p for p in result.projects if "render" in p]:
         prj_dir = prj["dir"]

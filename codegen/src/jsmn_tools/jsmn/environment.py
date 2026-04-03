@@ -40,11 +40,12 @@ class Environment:
     table: dict[Key, Descriptors]
     strings: list[tuple[int, str]]
     resolver: Resolver
+    specifications: list[dict]
 
     @classmethod
     def empty(cls) -> Environment:
         reg = Registry()
-        return cls([], [], {}, [], reg.resolver())
+        return cls([], [], {}, [], reg.resolver(), [])
 
     @classmethod
     def from_specifications(cls, *resources: Resource) -> Environment:
@@ -76,6 +77,7 @@ class Environment:
             table=table,
             strings=list(strings.strings()),
             resolver=resolver,
+            specifications=openapi + asyncapi,
         )
 
     def extend(
@@ -107,6 +109,7 @@ class Environment:
             "declarations": self.declarations,
             "descriptors": descriptors,
             "strings": self.strings,
+            "specifications": self.specifications,
         }
         if prefix:
             tpl_globals |= {"prefix": prefix}

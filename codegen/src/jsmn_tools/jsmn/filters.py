@@ -41,7 +41,11 @@ def snake_case(s: str, shouty: bool = False) -> str:
 def camel_case(s: str, upper: bool = False) -> str:
     """Convert to camelCase. upper=True gives PascalCase."""
     result = re.sub(r"[_-]", " ", snake_case(s)).title().replace(" ", "")
-    return result[0].upper() + result[1:] if upper else result[0].lower() + result[1:]
+    return (
+        result[0].upper() + result[1:]
+        if upper
+        else result[0].lower() + result[1:]
+    )
 
 
 # ── Rendering maps ────────────────────────────────────────────────────
@@ -237,6 +241,32 @@ def filters(
     def key(name: str) -> int:
         return struct_index[name]
 
+    # ── Document-aware prefix filters ───────────────────────────────────
+
+    def _lookup_prefix(decl: Any) -> str:
+        try:
+            spec_id = decl.loc[0]
+            resolved = resolver.lookup(spec_id)
+            path = type(decl.loc)(decl.loc[1:])
+            schema = path.resolve(resolved.contents)
+            return schema.get("x-jsmn-prefix", "")
+        except (KeyError, IndexError, LookupError):
+            return ""
+
+    def type_prefix(decl: Any) -> str:
+        return _lookup_prefix(decl)
+
+    def type_prefix_or(decl: Any, fallback: str = "") -> str:
+        return _lookup_prefix(decl) or fallback
+
+    def nameify(decl: Any) -> str:
+        pfx = _lookup_prefix(decl)
+        return decl.ctype.name[len(pfx) :]
+
+    def method_name(decl: Any, method: str, fallback_prefix: str = "") -> str:
+        pfx = _lookup_prefix(decl) or fallback_prefix
+        return f"{pfx}{method}_{nameify(decl)}"
+
     # ── JSON pointer filter (resolve $ref via resolver) ───────────────
 
     def json_pointer(ref: str) -> Any:
@@ -261,6 +291,10 @@ def filters(
         "camel_case": camel_case,
         "key": key,
         "json_pointer": json_pointer,
+        "type_prefix": type_prefix,
+        "type_prefix_or": type_prefix_or,
+        "nameify": nameify,
+        "method_name": method_name,
     }
 
     return result

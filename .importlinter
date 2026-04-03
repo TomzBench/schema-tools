@@ -36,3 +36,19 @@ type = layers
 layers =
     jsmn_tools.plugin
     jsmn_tools.jsmn
+
+[importlinter:contract:plugin-over-walk]
+name = plugin above walk
+type = layers
+layers =
+    jsmn_tools.plugin
+    jsmn_tools.walk
+    jsmn_tools.node
+
+[importlinter:contract:plugin-over-spec]
+name = plugin above spec
+type = layers
+layers =
+    jsmn_tools.plugin
+    jsmn_tools.spec
+    jsmn_tools.node

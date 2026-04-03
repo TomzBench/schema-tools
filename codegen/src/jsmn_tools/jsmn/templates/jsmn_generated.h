@@ -1,8 +1,8 @@
 {% for d in descriptors | structs %}
-#define {{ prefix | upper ~ d.ctype.name | upper }}_LEN ({{ d.encode_len }})
+#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_LEN ({{ d.encode_len }})
 {% endfor %}
 {% for a in descriptors | arrays if a is array_decl %}
-#define {{ prefix | upper ~ a.ctype.name | upper }}_LEN ({{ a.encode_len }})
+#define {{ a | type_prefix_or(prefix) | upper }}{{ a | nameify | upper }}_LEN ({{ a.encode_len }})
 {% endfor %}
 
 {# --- The C struct/union/enum/typedef declarations --- #}
@@ -42,19 +42,19 @@ int32_t {{ prefix }}encode(
 {# --- Prototype declarations --- #}
 {% for decl in declarations %}
 {% if decl is struct_decl and decl is user_decl and not decl is array_decl %}
-int32_t {{ prefix }}decode_{{ decl.ctype.name }}_tok(
+int32_t {{ decl | method_name("decode", fallback_prefix=prefix) }}_tok(
     {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks);
 
-int32_t {{ prefix }}decode_{{ decl.ctype.name }}(
+int32_t {{ decl | method_name("decode", fallback_prefix=prefix) }}(
     {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *dst,
     const char *src,
     uint32_t slen);
 
-int32_t {{ prefix }}encode_{{ decl.ctype.name }}(
+int32_t {{ decl | method_name("encode", fallback_prefix=prefix) }}(
     uint8_t *dst,
     uint32_t dlen,
     const {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *src);
@@ -63,19 +63,19 @@ int32_t {{ prefix }}encode_{{ decl.ctype.name }}(
 {% endfor %}
 {# --- Array prototype declarations --- #}
 {% for a in descriptors | arrays if a is array_decl %}
-int32_t {{ prefix }}decode_{{ a.ctype.name }}_tok(
+int32_t {{ a | method_name("decode", fallback_prefix=prefix) }}_tok(
     {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks);
 
-int32_t {{ prefix }}decode_{{ a.ctype.name }}(
+int32_t {{ a | method_name("decode", fallback_prefix=prefix) }}(
     {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
     const char *src,
     uint32_t slen);
 
-int32_t {{ prefix }}encode_{{ a.ctype.name }}(
+int32_t {{ a | method_name("encode", fallback_prefix=prefix) }}(
     uint8_t *dst,
     uint32_t dlen,
     const {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *src);
