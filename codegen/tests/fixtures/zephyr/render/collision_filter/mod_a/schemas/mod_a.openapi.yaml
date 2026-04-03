@@ -1,0 +1,11 @@
+openapi: "3.1.0"
+info:
+  title: x
+  version: "0"
+components:
+  schemas:
+    X:
+      type: object
+      properties:
+        v:
+          type: integer

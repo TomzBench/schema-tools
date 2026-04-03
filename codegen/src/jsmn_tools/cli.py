@@ -11,7 +11,7 @@ from referencing import Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.environment import Environment
+from jsmn_tools.jsmn import Environment
 
 JSMN_RUNTIME_DIR = files("jsmn_tools").joinpath("jsmn", "runtime")
 RUNTIME_FILES = ("runtime.c", "runtime.h", "jsmn.h")
@@ -41,8 +41,7 @@ def _cmake_dir() -> str:
     raise FileNotFoundError("Cannot locate jsmn tools cmake modules")
 
 
-
-def _generate(args: argparse.Namespace) -> None:
+def _render(args: argparse.Namespace) -> None:
     resources = [parse_spec(s) for s in args.specs]
     extra_env = dict(e.split("=", 1) for e in args.env)
     jsmn = Environment.from_specifications(*resources)
@@ -59,6 +58,23 @@ def _generate(args: argparse.Namespace) -> None:
         Path(out).write_text(env.from_string(tpl).render(), encoding="utf-8")
 
 
+def _generate_zephyr(args: argparse.Namespace) -> None:
+    # Lazy import: west is an optional dependency (pip install jsmn-tools[zephyr])
+    from jsmn_tools.plugin.zephyr import (
+        collect,
+        parse_autoconfig,
+        parse_workspace,
+        render,
+    )
+
+    config = parse_autoconfig(args.build_dir)
+    workspace = parse_workspace()
+    result = collect(workspace, config)
+    errors = render(result, prefix=args.prefix or "jsmn_")
+    for e in result.errors + errors:
+        print(f"warning: {e}", file=sys.stderr)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="jsmn-tools", description="jsmn tools"
@@ -72,10 +88,10 @@ def main() -> None:
         help="Print cmake module install path",
     )
 
-    # Code generator sub command
-    gen_parser = subparsers.add_parser("generate", help="template renderer")
-    gen_parser.add_argument("specs", nargs="*", help="YAML spec files")
-    gen_parser.add_argument(
+    # Render sub command (low-level: explicit specs + templates)
+    render_parser = subparsers.add_parser("render", help="render templates")
+    render_parser.add_argument("specs", nargs="*", help="YAML spec files")
+    render_parser.add_argument(
         "--template",
         nargs=2,
         action="append",
@@ -84,14 +100,31 @@ def main() -> None:
         default=[],
         help="Template and output filename pair",
     )
-    gen_parser.add_argument(
+    render_parser.add_argument(
         "--env",
         action="append",
         metavar="KEY=VALUE",
         default=[],
         help="User-defined template variable",
     )
-    gen_parser.add_argument(
+    render_parser.add_argument(
+        "--prefix",
+        help="Function/type prefix (default: jsmn_)",
+    )
+
+    # Generate sub command (workspace-driven codegen)
+    gen_parser = subparsers.add_parser("generate", help="workspace codegen")
+    gen_subparsers = gen_parser.add_subparsers(dest="generator")
+
+    zephyr_parser = gen_subparsers.add_parser(
+        "zephyr", help="generate from zephyr workspace"
+    )
+    zephyr_parser.add_argument(
+        "--build-dir",
+        required=True,
+        help="Zephyr build directory (CMAKE_BINARY_DIR)",
+    )
+    zephyr_parser.add_argument(
         "--prefix",
         help="Function/type prefix (default: jsmn_)",
     )
@@ -99,8 +132,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.cmake_dir:
         print(_cmake_dir())
-    elif args.command == "generate":
-        _generate(args)
+    elif args.command == "render":
+        _render(args)
+    elif args.command == "generate" and args.generator == "zephyr":
+        _generate_zephyr(args)
     else:
         parser.print_help()
         _die("no command specified")

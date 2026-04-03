@@ -1,3 +1,4 @@
+from .environment import Environment
 from .ir import CStruct, CType, Dim, Field, Variant
 from .mangle import mangle
 from .prepare import resolve_ctype
@@ -7,6 +8,7 @@ __all__ = [
     "CStruct",
     "CType",
     "Dim",
+    "Environment",
     "Field",
     "Variant",
     "hoist_includes",

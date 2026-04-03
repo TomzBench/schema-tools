@@ -106,6 +106,7 @@ def sort_declarations(decls: dict[CType, CDecl]) -> list[CDecl]:
     def walker(curr: CDecl) -> None:
         if curr.ctype in cache:
             return
+        cache.add(curr.ctype)
         if isinstance(curr, CStruct):
             for prop in curr.fields:
                 if isinstance(prop.ctype, CType):
@@ -115,12 +116,10 @@ def sort_declarations(decls: dict[CType, CDecl]) -> list[CDecl]:
                     for v in prop.ctype:
                         if v.ctype in decls:
                             walker(decls[v.ctype])
-            cache.add(curr.ctype)
             ret.append(curr)
         elif isinstance(curr, CArray):
             if curr.elem in decls:
                 walker(decls[curr.elem])
-            cache.add(curr.ctype)
             ret.append(curr)
         else:
             raise NotImplementedError

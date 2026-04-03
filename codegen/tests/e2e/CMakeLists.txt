@@ -8,7 +8,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 find_package(JsmnTools REQUIRED CONFIG HINTS "${JSMN_TOOLS_CMAKE_MODULES_DIR}")
-#jsmn_tools_generate(foo OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/jsmn-runtime)
+#jsmn_tools_render(foo OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/jsmn-runtime)
 
 # NOTE we peak into runtime.c files, this is more of a unit test.
 cmake_path(SET workspace NORMALIZE "${CMAKE_SOURCE_DIR}/../../../")
@@ -25,7 +25,7 @@ enable_testing()
 # cmake-format: off
 file(GLOB specs "${fixtures}/*.yaml")
 message(STATUS "specs: ${fixtures} ${specs}")
-jsmn_tools_generate(TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
+jsmn_tools_render(TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
 								${templates}/runtime.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.h
 								${templates}/jsmn.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h
 								${templates}/jsmn_generated.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h

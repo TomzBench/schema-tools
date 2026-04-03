@@ -8,7 +8,7 @@ macro(_append_if cond var)
     endif()
 endmacro()
 
-function(jsmn_tools_generate)
+function(jsmn_tools_render)
     cmake_parse_arguments(ARG "" "TARGET;PREFIX" "SPECS;TEMPLATES;ENV" ${ARGN})
 
     # Build --template pairs and collect outputs
@@ -34,7 +34,7 @@ function(jsmn_tools_generate)
 
     add_custom_command(
         OUTPUT ${_outputs}
-        COMMAND ${JsmnTools_EXECUTABLE} generate ${_args}
+        COMMAND ${JsmnTools_EXECUTABLE} render ${_args}
         DEPENDS ${ARG_SPECS} ${_depends}
         COMMENT "jsmn-tools: generating outputs"
     )
@@ -42,4 +42,16 @@ function(jsmn_tools_generate)
     if(ARG_TARGET)
         add_custom_target(${ARG_TARGET} DEPENDS ${_outputs})
     endif()
+endfunction()
+
+function(jsmn_tools_zephyr_workspace)
+    cmake_parse_arguments(ARG "" "PREFIX" "" ${ARGN})
+
+    set(_args generate zephyr --build-dir "${CMAKE_BINARY_DIR}")
+    _append_if(ARG_PREFIX _args --prefix "${ARG_PREFIX}")
+
+    add_custom_target(
+        jsmn_tools_workspace ALL COMMAND ${JsmnTools_EXECUTABLE} ${_args}
+        COMMENT "jsmn-tools: generating from zephyr workspace"
+    )
 endfunction()

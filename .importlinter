@@ -1,10 +1,38 @@
 [importlinter]
 root_package = jsmn_tools
 
-[importlinter:contract:layers]
-name = node <- walk <- spec layering
+# plugin
+#   +-- jsmn
+#        +-- spec --+
+#        +-- walk --+  (independent peers)
+#        +-- node <-+
+
+[importlinter:contract:jsmn-over-foundations]
+name = jsmn above spec, walk, node
 type = layers
 layers =
+    jsmn_tools.jsmn
     jsmn_tools.spec
+    jsmn_tools.node
+
+[importlinter:contract:jsmn-over-walk]
+name = jsmn above walk
+type = layers
+layers =
+    jsmn_tools.jsmn
     jsmn_tools.walk
     jsmn_tools.node
+
+[importlinter:contract:spec-walk-independent]
+name = spec and walk are independent
+type = independence
+modules =
+    jsmn_tools.spec
+    jsmn_tools.walk
+
+[importlinter:contract:plugin-over-jsmn]
+name = plugin above jsmn
+type = layers
+layers =
+    jsmn_tools.plugin
+    jsmn_tools.jsmn

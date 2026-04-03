@@ -7,7 +7,7 @@ from referencing import Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
-from jsmn_tools.environment import Environment
+from jsmn_tools.jsmn import Environment
 from jsmn_tools.jsmn.render import hoist_includes
 
 yaml = YAML(typ="safe")
