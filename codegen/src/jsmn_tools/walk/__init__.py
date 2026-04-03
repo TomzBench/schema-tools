@@ -11,6 +11,7 @@ from .diff import (
 from .join import join
 from .merge import MergeConflict, MergeResult, merge
 from .normalize import normalize
+from .prefixer import prefixer
 from .walk import Step, walk
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     "missing",
     "missmatch",
     "normalize",
+    "prefixer",
     "walk",
 ]

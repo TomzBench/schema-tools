@@ -1,0 +1,33 @@
+openapi: "3.1.0"
+$id: "forge://test/prefixer/v0"
+info:
+  title: Prefixer walk test
+  version: "0.1.0"
+components:
+  schemas:
+    about:
+      type: object
+      x-jsmn-type: about
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 32
+
+    device:
+      type: object
+      x-jsmn-type: device
+      required: [id, info]
+      properties:
+        id:
+          type: integer
+          format: uint32
+        info:
+          $ref: "#/components/schemas/about"
+
+    device_list:
+      type: array
+      x-jsmn-type: device_list
+      maxItems: 10
+      items:
+        $ref: "#/components/schemas/device"
