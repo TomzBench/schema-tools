@@ -8,7 +8,7 @@ components:
     # Leaf struct — no deps
     tag:
       type: object
-      x-jsmn-generate: tag
+      x-jsmn-type: tag
       required: [label]
       properties:
         label:
@@ -18,7 +18,7 @@ components:
     # Leaf struct — primitive fields + fixed array
     item:
       type: object
-      x-jsmn-generate: item
+      x-jsmn-type: item
       required: [id, value, scores]
       properties:
         id:
@@ -36,7 +36,7 @@ components:
     # Nests item via $ref, has VLA of tags, exercises dependency ordering
     container:
       type: object
-      x-jsmn-generate: container
+      x-jsmn-type: container
       required: [item, tags, name]
       properties:
         name:

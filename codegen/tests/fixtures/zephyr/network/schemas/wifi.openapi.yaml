@@ -16,7 +16,7 @@ paths:
 components:
   schemas:
     wifi_config:
-      x-jsmn-generate: "${id}"
+      x-jsmn-type: "${id}"
       type: object
       required:
         - ssid

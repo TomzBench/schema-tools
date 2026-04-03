@@ -115,7 +115,7 @@ def _seek_ctype(schema: Any, loc: Location, curr_resolver: Resolver) -> CType:  
             buf = max_len + 1  # +1 for null terminator
             return CType("char", (Dim(buf, buf),))
         case TypeKey.OBJECT:
-            return CType(schema.get("x-jsmn-generate", ""))
+            return CType(schema.get("x-jsmn-type", ""))
         case TypeKey.ARRAY:
             min_items = schema.get("minItems", 0)
             max_items = schema.get("maxItems", 0)  # TODO value error
@@ -179,7 +179,7 @@ def _walk_any(
     curr_resolver: Resolver,
 ) -> FlattenResult:
     ty: TypeKey = schema.get("type", "object")
-    if ty == "object" and "x-jsmn-generate" in schema:
+    if ty == "object" and "x-jsmn-type" in schema:
         fresult = FlattenResult.empty()
         fields: list[Field] = []
         properties_location = loc.push("properties")
@@ -189,14 +189,14 @@ def _walk_any(
             prop_ctype = _seek_ctype(prop_schema, prop_loc, curr_resolver)
             fields.append(Field(prop_name, prop_ctype, required))
             fresult |= _walk_any(prop_schema, prop_loc, curr_resolver)
-        ctype = CType(schema["x-jsmn-generate"])
+        ctype = CType(schema["x-jsmn-type"])
         fresult.decls |= {ctype: CStruct(ctype, loc, fields)}
         return fresult
     elif ty == "array":
         prop_loc = loc.push("items")
         items = schema.get("items")
-        if "x-jsmn-generate" in schema:
-            ctype = CType(schema["x-jsmn-generate"])
+        if "x-jsmn-type" in schema:
+            ctype = CType(schema["x-jsmn-type"])
             carr = CArray(
                 ctype=ctype,
                 elem=_seek_ctype(items, prop_loc, curr_resolver),
@@ -236,7 +236,7 @@ def flatten_with_resolver[K: str](
             if "schemaFormat" in s.value:
                 e = UnsupportedSchemaFormat(s.location, s.value["schemaFormat"])
                 acc.errors.append(e)
-            elif "x-jsmn-generate" in s.value:
+            elif "x-jsmn-type" in s.value:
                 ty = s.value.get("type")
                 if ty == "object" or ty == "array" or "allOf" in s.value:
                     acc |= _walk_any(s.value, s.location, resolver)

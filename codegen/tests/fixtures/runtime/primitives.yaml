@@ -7,7 +7,7 @@ components:
   schemas:
     every_type:
       type: object
-      x-jsmn-generate: every_type
+      x-jsmn-type: every_type
       required:
         - p_u8
         - p_i8

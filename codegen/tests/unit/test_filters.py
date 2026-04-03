@@ -135,5 +135,5 @@ def test_json_pointer() -> None:
         "forge://test/tags/v0#/components/schemas/tagged_string"
     )
     assert result["type"] == "object"
-    assert result["x-jsmn-generate"] == "tagged_string"
+    assert result["x-jsmn-type"] == "tagged_string"
     assert result["x-jsmn-tag"] == "network"

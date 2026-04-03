@@ -7,7 +7,7 @@ paths: {}
 components:
   schemas:
     tagged_string:
-      x-jsmn-generate: "tagged_string"
+      x-jsmn-type: "tagged_string"
       x-jsmn-tag: "network"
       type: object
       required: [name]
@@ -16,7 +16,7 @@ components:
           type: string
           maxLength: 32
     tagged_list:
-      x-jsmn-generate: "tagged_list"
+      x-jsmn-type: "tagged_list"
       x-jsmn-tag:
         - "network"
         - "config"
@@ -27,7 +27,7 @@ components:
           type: integer
           format: uint32
     tagged_empty:
-      x-jsmn-generate: "tagged_empty"
+      x-jsmn-type: "tagged_empty"
       x-jsmn-tag: []
       type: object
       required: [flag]
@@ -35,7 +35,7 @@ components:
         flag:
           type: boolean
     not_tagged:
-      x-jsmn-generate: "not_tagged"
+      x-jsmn-type: "not_tagged"
       type: object
       required: [count]
       properties:

@@ -17,7 +17,7 @@ paths:
 components:
   schemas:
     device_status:
-      x-jsmn-generate: "${id}"
+      x-jsmn-type: "${id}"
       type: object
       required:
         - online

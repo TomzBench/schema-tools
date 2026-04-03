@@ -10,7 +10,7 @@ components:
     # VLA = maxItems only, Fixed = minItems == maxItems
     vla_combos:
       type: object
-      x-jsmn-generate: vla_combos
+      x-jsmn-type: vla_combos
       required: [d_vvv, d_vvf, d_vfv, d_vff, d_fvv, d_fvf, d_ffv, d_fff]
       properties:
         # vvv: vla(5) -> vla(4) -> vla(3) -> u32

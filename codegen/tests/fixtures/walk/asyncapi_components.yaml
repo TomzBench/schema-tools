@@ -6,7 +6,7 @@ components:
   schemas:
     SensorReading:
       type: object
-      x-jsmn-generate: sensor_reading
+      x-jsmn-type: sensor_reading
       required:
         - value
         - timestamp

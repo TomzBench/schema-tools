@@ -17,7 +17,7 @@ paths:
 components:
   schemas:
     temperature_reading:
-      x-jsmn-generate: "${id}"
+      x-jsmn-type: "${id}"
       type: object
       required:
         - celsius

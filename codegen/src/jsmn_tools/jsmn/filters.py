@@ -97,11 +97,11 @@ def tests(
         return not isinstance(ctype, CType)
 
     # Tag lookup is a single resolver hit — no recursion. The decl's
-    # location points to the schema where x-jsmn-generate was found,
+    # location points to the schema where x-jsmn-type was found,
     # and x-jsmn-tag must be co-located on that same schema. Tags on
     # $ref targets or allOf branches are not inherited. A future
     # validation pass could warn when x-jsmn-tag appears on a schema
-    # without x-jsmn-generate (misplaced tag).
+    # without x-jsmn-type (misplaced tag).
     def is_tagged(decl: CDecl, tag: str) -> bool:
         try:
             spec_id = decl.loc[0]

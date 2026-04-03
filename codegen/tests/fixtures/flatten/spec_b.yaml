@@ -8,7 +8,7 @@ components:
     # Simple object (used by: A→C→A, A→B→C→A)
     target_a:
       type: object
-      x-jsmn-generate: target_a
+      x-jsmn-type: target_a
       properties:
         id:
           type: integer
@@ -17,11 +17,11 @@ components:
     # Object with nested child (used by: A→C→A→A, A→B→C→A→A)
     target_b:
       type: object
-      x-jsmn-generate: target_b
+      x-jsmn-type: target_b
       properties:
         inner:
           type: object
-          x-jsmn-generate: target_b_child
+          x-jsmn-type: target_b_child
           properties:
             flag:
               type: boolean
@@ -32,7 +32,7 @@ components:
       maxItems: 6
       items:
         type: object
-        x-jsmn-generate: target_c_item
+        x-jsmn-type: target_c_item
         properties:
           value:
             type: integer
