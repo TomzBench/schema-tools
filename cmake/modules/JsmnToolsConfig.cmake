@@ -1,6 +1,6 @@
 set(JsmnTools_FOUND TRUE)
 set(JsmnTools_VERSION "0.1.0")
-find_program(JsmnTools_EXECUTABLE jsmn-tools-codegen REQUIRED)
+find_program(JsmnTools_EXECUTABLE jsmn REQUIRED)
 
 macro(_append_if cond var)
     if(${cond})
