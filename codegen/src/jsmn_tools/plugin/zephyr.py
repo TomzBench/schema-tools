@@ -89,6 +89,7 @@ class Project(TypedDict):
     module: str
     version: int
     specs: dict[str, str]
+    prefix: NotRequired[str]
     render: NotRequired[list[tuple[str, str]]]
     jinja_filters: NotRequired[dict[str, Callable[..., Any]]]
     jinja_tests: NotRequired[dict[str, Callable[..., bool]]]
@@ -142,39 +143,27 @@ def collect(workspace: list[Path], config: dict[str, str]) -> CollectResult:
         prj["dir"] = config_file.parent
         module = prj["module"]
         version = prj["version"]
+        prefix = prj.get("prefix", "")
         specs = prj["specs"].items()
         loaded_projects.append(prj)
         for name, path in specs:
             content = yaml.load(project_dir / path)
             if "$id" not in content:
                 content["$id"] = f"zephyr://{module}/{name}/v{version}"
-                res = Resource.from_contents(content, DRAFT202012)
-                resources.append(res)
-            elif RE_URI.match(content["$id"]):
-                res = Resource.from_contents(content, DRAFT202012)
-                resources.append(res)
-            else:
+            elif not RE_URI.match(content["$id"]):
                 e = InvalidResourceError(f"Invalid $id: {content['$id']}")
                 errors.append(e)
+                continue
+            if prefix and (draft := parse_draft(content)):
+                content = prefixer(content, draft=draft, prefix=prefix)
+            resources.append(Resource.from_contents(content, DRAFT202012))
 
     return CollectResult(resources @ Registry(), loaded_projects, errors)
-
-
-def _add_prefix_to_registry(prefix: str, registry: Registry) -> Registry:
-    resources: list[Resource] = []
-    for r in registry.values():
-        if d := parse_draft(r.contents):
-            contents = prefixer(r.contents, draft=d, prefix=prefix)
-            resources.append(Resource.from_contents(contents, DRAFT202012))
-        else:
-            resources.append(r)
-    return resources @ Registry()
 
 
 def render(
     result: CollectResult,
     prefix: str = "jsmn_",
-    type_prefix: str = "",
     autoconf: dict[str, str] | None = None,
 ) -> list[CollectErrors]:
     errors: list[CollectErrors] = []
@@ -201,12 +190,8 @@ def render(
                 jinja_env.tests[name] = fn
         jinja_env.globals.update(prj.get("jinja_globals", {}))
 
-    # -- pass 2: apply type prefix and build environment --------------------
-    registry = result.registry
-    if type_prefix:
-        registry = _add_prefix_to_registry(type_prefix, registry)
-
-    jsmn_env = Environment.from_specifications(*registry.values())
+    # -- pass 2: build environment and render templates --------------------
+    jsmn_env = Environment.from_specifications(*result.registry.values())
     jsmn_env.extend(jinja_env, prefix=prefix)
     for prj in [p for p in result.projects if "render" in p]:
         prj_dir = prj["dir"]

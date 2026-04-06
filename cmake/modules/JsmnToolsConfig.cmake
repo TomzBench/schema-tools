@@ -44,15 +44,3 @@ function(jsmn_tools_render)
     endif()
 endfunction()
 
-function(jsmn_tools_zephyr_workspace)
-    cmake_parse_arguments(ARG "" "PREFIX;TYPE_PREFIX" "" ${ARGN})
-
-    set(_args generate zephyr --build-dir "${CMAKE_BINARY_DIR}")
-    _append_if(ARG_PREFIX _args --prefix "${ARG_PREFIX}")
-    _append_if(ARG_TYPE_PREFIX _args --type-prefix "${ARG_TYPE_PREFIX}")
-
-    add_custom_target(
-        jsmn_tools_workspace ALL COMMAND ${JsmnTools_EXECUTABLE} ${_args}
-        COMMENT "jsmn-tools: generating from zephyr workspace"
-    )
-endfunction()
