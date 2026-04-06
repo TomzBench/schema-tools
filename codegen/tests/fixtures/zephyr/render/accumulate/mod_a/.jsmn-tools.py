@@ -3,5 +3,8 @@ def collect(autoconf):
         "module": "mod_a",
         "version": 0,
         "specs": {"mod_a": "schemas/mod_a.openapi.yaml"},
-        "jinja_filters": {"shout": lambda s: s.upper()},
     }
+
+
+def extend(env):
+    env.filters["shout"] = lambda s: s.upper()

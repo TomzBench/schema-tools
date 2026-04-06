@@ -136,11 +136,16 @@ def filters(
     resolver: Resolver,
 ) -> dict[str, Callable[..., Any]]:
     """Return all template filters (stateless + table-rendering closures)."""
-    # ── Build struct index for positional lookups ─────────────────────
+    # ── Build index for positional lookups ──────────────────────────
     struct_index: dict[str, int] = {
         d.ctype.name: d.key.pos
         for d in table.values()
         if isinstance(d, StructDescriptor)
+    }
+    array_index: dict[str, int] = {
+        d.ctype.name: d.key.pos
+        for d in table.values()
+        if isinstance(d, ArrayDescriptor)
     }
 
     cdecl_index = {v.ctype.name: v for v in decls}
@@ -157,10 +162,14 @@ def filters(
             return "struct"
 
     def _resolve_ctype(ctype: CType) -> str:
-        try:
+        if ctype.name in Primitive:
             return f"JT_PRIM({_PRIM_KINDS[Primitive(ctype.name)]})"
-        except ValueError:
+        elif ctype.name in struct_index:
             return f"JT_STRUCT({struct_index[ctype.name]})"
+        elif ctype.name in array_index:
+            return f"JT_ARRAY({array_index[ctype.name]})"
+        else:
+            raise ValueError(f"{ctype.name} not indexable")
 
     def _resolve_ref(ref: Key | CType) -> str:
         if isinstance(ref, CType):
@@ -236,11 +245,6 @@ def filters(
     def arrays(ds: list[Descriptors]) -> list[ArrayDescriptor]:
         return [d for d in ds if isinstance(d, ArrayDescriptor)]
 
-    # ── Key filter (descriptor index by schema name) ────────────────────
-
-    def key(name: str) -> int:
-        return struct_index[name]
-
     # ── Document-aware prefix filters ───────────────────────────────────
 
     def _lookup_prefix(decl: Any) -> str:
@@ -289,7 +293,6 @@ def filters(
         "qualifier": qualifier,
         "snake_case": snake_case,
         "camel_case": camel_case,
-        "key": key,
         "json_pointer": json_pointer,
         "type_prefix": type_prefix,
         "type_prefix_or": type_prefix_or,

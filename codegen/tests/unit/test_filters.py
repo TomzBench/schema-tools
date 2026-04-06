@@ -101,24 +101,6 @@ def test_camel_case_upper() -> None:
     assert camel_case("device_status", upper=True) == "DeviceStatus"
 
 
-# ── key ──────────────────────────────────────────────────────────────
-
-
-def test_key() -> None:
-    """key filter returns descriptor table index for a schema name."""
-    spec = FIXTURES / "jsmn-tags.openapi.yaml"
-    resource = Resource.from_contents(
-        yaml.load(spec), default_specification=DRAFT202012
-    )
-    registry: Registry[Any] = [resource] @ Registry()
-    compiled = codegen(registry)
-    fns = filters(compiled.table, compiled.declarations, compiled.resolver)
-    # all tagged schemas should have a key
-    for decl in compiled.original:
-        idx = fns["key"](decl.ctype.name)
-        assert isinstance(idx, int)
-
-
 # ── json_pointer ─────────────────────────────────────────────────────
 
 

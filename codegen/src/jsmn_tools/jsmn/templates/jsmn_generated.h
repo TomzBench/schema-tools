@@ -1,8 +1,10 @@
 {% for d in descriptors | structs %}
 #define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_LEN ({{ d.encode_len }})
+#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_TYPE JT_STRUCT({{ loop.index0 }})
 {% endfor %}
 {% for a in descriptors | arrays if a is array_decl %}
 #define {{ a | type_prefix_or(prefix) | upper }}{{ a | nameify | upper }}_LEN ({{ a.encode_len }})
+#define {{ a | type_prefix_or(prefix) | upper }}{{ a | nameify | upper }}_TYPE JT_ARRAY({{ a.key.pos }})
 {% endfor %}
 
 {# --- The C struct/union/enum/typedef declarations --- #}

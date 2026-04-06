@@ -6,7 +6,7 @@ import importlib.util
 import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, NamedTuple, NotRequired, TypedDict, TypeGuard
+from typing import NamedTuple, NotRequired, Protocol, TypedDict
 
 from jinja2 import Environment as JinjaEnvironment
 from referencing import Registry, Resource
@@ -64,25 +64,8 @@ class InvalidPlugin(Exception):
     """Raised when workspace plugin did not return a valid Project."""
 
 
-class JinjaFilterExists(Exception):
-    """Raised when a plugin declares a filter that already exists."""
-
-
-class JinjaTestExists(Exception):
-    """Raised when a plugin declares a test that already exists."""
-
-
 class RenderError(Exception):
     """Raised when a template fails to render."""
-
-
-type CollectErrors = (
-    InvalidResourceError
-    | InvalidPlugin
-    | JinjaFilterExists
-    | JinjaTestExists
-    | RenderError
-)
 
 
 class Project(TypedDict):
@@ -91,118 +74,113 @@ class Project(TypedDict):
     specs: dict[str, str]
     prefix: NotRequired[str]
     render: NotRequired[list[tuple[str, str]]]
-    jinja_filters: NotRequired[dict[str, Callable[..., Any]]]
-    jinja_tests: NotRequired[dict[str, Callable[..., bool]]]
-    jinja_globals: NotRequired[dict[str, Any]]
 
 
-class LoadedProject(Project):
-    dir: Path
+class Plugin(Protocol):
+    collect: Callable[[dict[str, str]], Project]
+    extend: Callable[[JinjaEnvironment], None] | None
 
 
-class CollectResult(NamedTuple):
+def _load_plugin(path: Path) -> Plugin:
+    spec = importlib.util.spec_from_file_location("_jsmn_config", path)
+    if not spec or not spec.loader:
+        raise InvalidPlugin(f"Cannot load: {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod  # type: ignore[return-value]
+
+
+def _load_resource(name: str, path: Path, prj: Project) -> Resource:
+    content = yaml.load(path)
+    module = prj["module"]
+    version = prj["version"]
+    prefix = prj.get("prefix", "")
+    if "$id" not in content:
+        content["$id"] = f"zephyr://{module}/{name}/v{version}"
+    elif not RE_URI.match(content["$id"]):
+        raise InvalidResourceError(f"Invalid $id: {content['$id']}")
+    if prefix and (draft := parse_draft(content)):
+        content = prefixer(content, draft=draft, prefix=prefix)
+    return Resource.from_contents(content, DRAFT202012)
+
+
+def _normalize(root: Path, path_str: str) -> Path:
+    path = Path(path_str)
+    return path if path.is_absolute() else root / path
+
+
+class Collection(NamedTuple):
     registry: Registry
-    projects: list[LoadedProject]
-    errors: list[CollectErrors]
+    environment: JinjaEnvironment
+    render: list[tuple[Path, Path]]
 
 
-def collect(workspace: list[Path], config: dict[str, str]) -> CollectResult:
-    def is_project(obj: Any) -> TypeGuard[Project]:
-        keys = ("module", "version", "specs")
-        return isinstance(obj, dict) and all(k in obj for k in keys)
-
-    def load_plugin(path: Path, config: dict[str, str]) -> Any:
-        spec = importlib.util.spec_from_file_location("_jsmn_config", path)
-        if not spec or not spec.loader:
-            raise InvalidPlugin(f"Cannot load: {path}")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        prj = mod.collect(config)
-        if not is_project(prj):
-            raise InvalidPlugin(str(path))
-        return prj
-
-    resources: list[Resource] = []
-    loaded_projects: list[LoadedProject] = []
-    errors: list[CollectErrors] = []
-
+def collect(workspace: list[Path], config: dict[str, str]) -> Collection:
     # filter all the workspace projects with .jsmn-tools.py in the root
-    configs = [
-        (project_dir, p)
+    plugins = {
+        project_dir: _load_plugin(p)
         for project_dir in workspace
         for p in project_dir.iterdir()
         if RE_CONFIG.match(p.name)
+    }
+
+    # Get all the project plugins
+    projects = {
+        project_dir: plugin.collect(config)
+        for project_dir, plugin in plugins.items()
+    }
+
+    # For each project, load all the resources
+    resources = [
+        _load_resource(name, project_dir / path, project)
+        for project_dir, project in projects.items()
+        for name, path in project["specs"].items()
     ]
 
-    for project_dir, config_file in configs:
-        try:
-            prj = load_plugin(config_file, config)
-        except Exception as e:
-            errors.append(InvalidPlugin(str(e)))
-            continue
-        prj["dir"] = config_file.parent
-        module = prj["module"]
-        version = prj["version"]
-        prefix = prj.get("prefix", "")
-        specs = prj["specs"].items()
-        loaded_projects.append(prj)
-        for name, path in specs:
-            content = yaml.load(project_dir / path)
-            if "$id" not in content:
-                content["$id"] = f"zephyr://{module}/{name}/v{version}"
-            elif not RE_URI.match(content["$id"]):
-                e = InvalidResourceError(f"Invalid $id: {content['$id']}")
-                errors.append(e)
-                continue
-            if prefix and (draft := parse_draft(content)):
-                content = prefixer(content, draft=draft, prefix=prefix)
-            resources.append(Resource.from_contents(content, DRAFT202012))
-
-    return CollectResult(resources @ Registry(), loaded_projects, errors)
-
-
-def render(
-    result: CollectResult,
-    prefix: str = "jsmn_",
-    autoconf: dict[str, str] | None = None,
-) -> list[CollectErrors]:
-    errors: list[CollectErrors] = []
+    # build a jinja env
     jinja_env = JinjaEnvironment(
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True,
     )
 
-    # -- pass 1: accumulate custom filters, tests, and globals from plugins --
+    # for each project, extend jinja with project jinja extensions
+    for p in plugins.values():
+        extend = getattr(p, "extend", None)
+        if extend:
+            extend(jinja_env)
+
+    return Collection(
+        registry=resources @ Registry(),
+        environment=jinja_env,
+        render=[
+            (_normalize(project_dir, src), _normalize(project_dir, dst))
+            for project_dir, p in projects.items()
+            if "render" in p
+            for src, dst in p["render"]
+        ],
+    )
+
+
+def render(
+    collection: Collection,
+    prefix: str = "jsmn_",
+    autoconf: dict[str, str] | None = None,
+) -> list[RenderError]:
+    jinja_env = collection.environment
     if autoconf is not None:
         jinja_env.globals["autoconf"] = autoconf
-    for prj in result.projects:
-        module = prj["module"]
-        for name, fn in prj.get("jinja_filters", {}).items():
-            if name in jinja_env.filters:
-                errors.append(JinjaFilterExists(f"'{name}' from '{module}'"))
-            else:
-                jinja_env.filters[name] = fn
-        for name, fn in prj.get("jinja_tests", {}).items():
-            if name in jinja_env.tests:
-                errors.append(JinjaTestExists(f"'{name}' from '{module}'"))
-            else:
-                jinja_env.tests[name] = fn
-        jinja_env.globals.update(prj.get("jinja_globals", {}))
 
-    # -- pass 2: build environment and render templates --------------------
-    jsmn_env = Environment.from_specifications(*result.registry.values())
+    jsmn_env = Environment.from_specifications(*collection.registry.values())
     jsmn_env.extend(jinja_env, prefix=prefix)
-    for prj in [p for p in result.projects if "render" in p]:
-        prj_dir = prj["dir"]
-        for src, dst in prj["render"]:
-            src_path = prj_dir / src
-            dst_path = Path(dst) if Path(dst).is_absolute() else prj_dir / dst
-            try:
-                tpl = src_path.read_text(encoding="utf-8")
-                rendered = jinja_env.from_string(tpl).render()
-                dst_path.parent.mkdir(parents=True, exist_ok=True)
-                dst_path.write_text(rendered, encoding="utf-8")
-            except Exception as e:
-                errors.append(RenderError(f"{src}: {e}"))
+
+    errors: list[RenderError] = []
+    for src, dst in collection.render:
+        try:
+            tpl = src.read_text(encoding="utf-8")
+            rendered = jinja_env.from_string(tpl).render()
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(rendered, encoding="utf-8")
+        except Exception as e:
+            errors.append(RenderError(f"{src}: {e}"))
     return errors

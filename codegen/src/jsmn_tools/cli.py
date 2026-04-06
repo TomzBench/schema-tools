@@ -69,13 +69,13 @@ def _generate_zephyr(args: argparse.Namespace) -> None:
 
     config = parse_autoconfig(args.build_dir)
     workspace = parse_workspace()
-    result = collect(workspace, config)
+    collection = collect(workspace, config)
     errors = render(
-        result,
+        collection,
         prefix=args.prefix or "jsmn_",
         autoconf=config,
     )
-    for e in result.errors + errors:
+    for e in errors:
         print(f"warning: {e}", file=sys.stderr)
 
 

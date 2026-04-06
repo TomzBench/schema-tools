@@ -2,6 +2,3 @@
 # name: test_render_accumulates_filters
   'HELLO'
 # ---
-# name: test_render_filter_collision_keeps_first
-  'FIRST'
-# ---

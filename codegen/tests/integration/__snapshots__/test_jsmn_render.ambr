@@ -14,6 +14,7 @@
 # name: test_renderer_jsmn_generated_decl[jsmn-every-type]
   '''
   #define JSMN_EVERY_TYPE_LEN (247)
+  #define JSMN_EVERY_TYPE_TYPE JT_STRUCT(0)
   
   struct every_type {
       uint8_t p_u8;
@@ -67,6 +68,7 @@
 # name: test_renderer_jsmn_generated_decl[jsmn-vla]
   '''
   #define JSMN_VLA_COMBOS_LEN (5761)
+  #define JSMN_VLA_COMBOS_TYPE JT_STRUCT(0)
   
   struct vla__u32__n3 {
       uint32_t len;
@@ -158,8 +160,11 @@
 # name: test_renderer_jsmn_generated_decl[jsmn]
   '''
   #define JSMN_CHILD_LEN (56)
+  #define JSMN_CHILD_TYPE JT_STRUCT(0)
   #define JSMN_PARENT_LEN (236)
+  #define JSMN_PARENT_TYPE JT_STRUCT(1)
   #define JSMN_SIBLING_LEN (20)
+  #define JSMN_SIBLING_TYPE JT_STRUCT(2)
   
   struct child {
       bool flag;
