@@ -3,9 +3,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from jsmn_tools.node import Location
+
 from .descriptor import (
     ArrayDescriptor,
     ArrayKind,
+    Descriptor,
     Descriptors,
     FieldDescriptor,
     Key,
@@ -149,6 +152,7 @@ def filters(
     }
 
     cdecl_index = {v.ctype.name: v for v in decls}
+    descriptor_index = {d.ctype: d for d in table.values()}
 
     def qualifier(ctype: CType) -> str:
         qual = cdecl_index.get(ctype.name)
@@ -184,9 +188,19 @@ def filters(
     def name_offset(f: FieldDescriptor) -> str:
         return str(f.name_offset)
 
+    def _rename_field(name: str, parent: Descriptor) -> str:
+        """Apply x-jsmn-rename / x-jsmn-rename-all for offsetof expressions."""
+        if rename := location(parent, "properties", name, "x-jsmn-rename"):
+            return rename
+        elif rename := location(parent, "x-jsmn-rename-all"):
+            return caseify(name, rename)
+        else:
+            return name
+
     def value_offset(f: FieldDescriptor) -> str:
         parent = table[f.parent]
-        base = f"offsetof(struct {parent.ctype.name}, {f.name})"
+        c_name = _rename_field(f.name, parent)
+        base = f"offsetof(struct {parent.ctype.name}, {c_name})"
         if f.optional:
             return f"{base} + offsetof(struct {f.ctype.name}, maybe)"
         return base
@@ -195,7 +209,8 @@ def filters(
         if not f.optional:
             return "0xFFFF"
         parent = table[f.parent]
-        return f"offsetof(struct {parent.ctype.name}, {f.name})"
+        c_name = _rename_field(f.name, parent)
+        return f"offsetof(struct {parent.ctype.name}, {c_name})"
 
     def size_expr(s: StructDescriptor) -> str:
         return f"sizeof(struct {s.ctype.name})"
@@ -245,17 +260,25 @@ def filters(
     def arrays(ds: list[Descriptors]) -> list[ArrayDescriptor]:
         return [d for d in ds if isinstance(d, ArrayDescriptor)]
 
-    # ── Document-aware prefix filters ───────────────────────────────────
+    # ── Document-aware schema filters ────────────────────────────────────
 
-    def _lookup_prefix(decl: Any) -> str:
+    def location(obj: CDecl | Descriptor, *segments: str) -> Any | None:
+        if isinstance(obj, Descriptor):
+            base = obj.loc
+        elif desc := descriptor_index.get(obj.ctype):
+            base = desc.loc
+        else:
+            return None
+
         try:
-            spec_id = decl.loc[0]
-            resolved = resolver.lookup(spec_id)
-            path = type(decl.loc)(decl.loc[1:])
-            schema = path.resolve(resolved.contents)
-            return schema.get("x-jsmn-prefix", "")
-        except (KeyError, IndexError, LookupError):
-            return ""
+            root = resolver.lookup(base[0])
+            location = Location.from_segments(*base[1:], *segments)
+            return location.resolve(root.contents)
+        except Exception:
+            return None
+
+    def _lookup_prefix(obj: Any) -> str:
+        return location(obj, "x-jsmn-prefix") or ""
 
     def type_prefix(decl: Any) -> str:
         return _lookup_prefix(decl)
@@ -270,6 +293,14 @@ def filters(
     def method_name(decl: Any, method: str, fallback_prefix: str = "") -> str:
         pfx = _lookup_prefix(decl) or fallback_prefix
         return f"{pfx}{method}_{nameify(decl)}"
+
+    _RENAME_FNS: dict[str, Callable[[str], str]] = {
+        "snake_case": snake_case,
+    }
+
+    def caseify(name: str, rule: str) -> str:
+        fn = _RENAME_FNS.get(rule)
+        return fn(name) if fn else name
 
     # ── JSON pointer filter (resolve $ref via resolver) ───────────────
 
@@ -298,6 +329,8 @@ def filters(
         "type_prefix_or": type_prefix_or,
         "nameify": nameify,
         "method_name": method_name,
+        "location": location,
+        "caseify": caseify,
     }
 
     return result

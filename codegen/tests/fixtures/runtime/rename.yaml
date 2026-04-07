@@ -1,0 +1,38 @@
+openapi: "3.1.0"
+$id: "forge://e2e/rename/v0"
+info:
+  title: Field rename e2e test
+  version: "0.1.0"
+components:
+  schemas:
+    # Exercises x-jsmn-rename-all (struct-level) and x-jsmn-rename (field-level)
+    rename_sample:
+      type: object
+      x-jsmn-type: rename_sample
+      x-jsmn-rename-all: snake_case
+      required: [fieldAlpha, fieldBeta, fieldGamma]
+      properties:
+        # rename-all: snake_case → field_alpha
+        fieldAlpha:
+          type: integer
+          format: uint32
+        # explicit x-jsmn-rename overrides rename-all
+        fieldBeta:
+          type: integer
+          format: uint32
+          x-jsmn-rename: beta_override
+        # rename-all: snake_case → field_gamma
+        fieldGamma:
+          type: boolean
+
+    # No rename — fields stay verbatim
+    rename_verbatim:
+      type: object
+      x-jsmn-type: rename_verbatim
+      required: [camelField, simpleField]
+      properties:
+        camelField:
+          type: integer
+          format: uint32
+        simpleField:
+          type: boolean

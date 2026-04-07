@@ -260,7 +260,7 @@ def codegen(reg: Registry) -> CodegenBundle:
     )
 
 
-# NOTE currently the bundle pipeline for doc tooling is join(). However, should 
-#      more preprocessing happen for the doc step, we would add prepare.docs -> 
+# NOTE currently the bundle pipeline for doc tooling is join(). However, should
+#      more preprocessing happen for the doc step, we would add prepare.docs ->
 #      DocBundle in the future
 # def docs(*specs, draft) -> DocBundle: ...

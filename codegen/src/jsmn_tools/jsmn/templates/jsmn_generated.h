@@ -10,9 +10,11 @@
 {# --- The C struct/union/enum/typedef declarations --- #}
 {% for decl in declarations %}
 {% if decl is struct_decl %}
+{% set rename_all = decl | location("x-jsmn-rename-all") %}
 struct {{ decl.ctype.name }} {
 {% for f in decl.fields %}
-    {{ (f.ctype | qualifier ~ ' ' ~ f.ctype.name) | trim }} {{ f.name }}{{ f.ctype.dims | dimensions }};
+{% set c_name = (decl | location("properties", f.name, "x-jsmn-rename")) or (f.name | caseify(rename_all) if rename_all else f.name) %}
+    {{ (f.ctype | qualifier ~ ' ' ~ f.ctype.name) | trim }} {{ c_name }}{{ f.ctype.dims | dimensions }};
 {% endfor %}
 };
 {% elif decl is union_decl %}

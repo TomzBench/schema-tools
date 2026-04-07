@@ -1,5 +1,5 @@
-#include "runtime.h"
 #include "jsmn_generated.h"
+#include "runtime.h"
 #include "unity.h"
 #include "util.h"
 
@@ -266,6 +266,38 @@ test_top_vla_points_roundtrip(void)
     }
 }
 
+/* ── Rename ────────────────────────────────────────────────────────── */
+
+void
+test_rename_sample_roundtrip(void)
+{
+    // clang-format off
+    struct rename_sample dec = {0}, x = {
+        .field_alpha  = 42,     // rename-all: snake_case
+        .beta_override = 99,    // explicit x-jsmn-rename
+        .field_gamma  = true,   // rename-all: snake_case
+    };
+    // clang-format on
+    ROUNDTRIP(rename_sample, RENAME_SAMPLE, &x, &dec);
+    TEST_ASSERT_EQUAL_UINT32(x.field_alpha, dec.field_alpha);
+    TEST_ASSERT_EQUAL_UINT32(x.beta_override, dec.beta_override);
+    TEST_ASSERT_EQUAL(x.field_gamma, dec.field_gamma);
+}
+
+void
+test_rename_verbatim_roundtrip(void)
+{
+    // clang-format off
+    struct rename_verbatim dec = {0}, x = {
+        .camelField  = 7,       // no rename — verbatim
+        .simpleField = false,   // no rename — verbatim
+    };
+    // clang-format on
+    ROUNDTRIP(rename_verbatim, RENAME_VERBATIM, &x, &dec);
+    TEST_ASSERT_EQUAL_UINT32(x.camelField, dec.camelField);
+    TEST_ASSERT_EQUAL(x.simpleField, dec.simpleField);
+}
+
 /* ── Optionals ─────────────────────────────────────────────────────── */
 
 #define DETAIL_INIT {.code = 404, .message = "not found"}
@@ -410,6 +442,8 @@ main(void)
     RUN_TEST(test_array_of_objects_roundtrip);
     RUN_TEST(test_array_combos_roundtrip);
     RUN_TEST(test_top_vla_points_roundtrip);
+    RUN_TEST(test_rename_sample_roundtrip);
+    RUN_TEST(test_rename_verbatim_roundtrip);
     RUN_TEST(test_detail_roundtrip);
     RUN_TEST(test_record_required_only);
     RUN_TEST(test_record_all_present);
