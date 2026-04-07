@@ -176,6 +176,17 @@ test_container_roundtrip(void)
     assert_container_eq(&x, &dec);
 }
 
+/* ── Top-level strings ─────────────────────────────────────────────── */
+
+void
+test_top_label_roundtrip(void)
+{
+    top_label dec = {0};
+    top_label x = "hello world";
+    ROUNDTRIP(top_label, TOP_LABEL, &x, &dec);
+    TEST_ASSERT_EQUAL_STRING(x, dec);
+}
+
 /* ── Arrays ────────────────────────────────────────────────────────── */
 
 #define POINT_INIT(idx, _) {.x = (idx) + 1, .y = ((idx) + 1) * 10}
@@ -395,6 +406,7 @@ main(void)
     RUN_TEST(test_tag_roundtrip);
     RUN_TEST(test_item_roundtrip);
     RUN_TEST(test_container_roundtrip);
+    RUN_TEST(test_top_label_roundtrip);
     RUN_TEST(test_array_of_objects_roundtrip);
     RUN_TEST(test_array_combos_roundtrip);
     RUN_TEST(test_top_vla_points_roundtrip);

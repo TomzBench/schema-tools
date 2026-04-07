@@ -212,6 +212,19 @@ def _walk_any(
         else:
             return _walk_any(items, prop_loc, curr_resolver)
 
+    elif ty == "string" and "x-jsmn-type" in schema:
+        ctype = CType(schema["x-jsmn-type"])
+        max_len = schema.get("maxLength", 0)  # TODO value error
+        buf = max_len + 1  # +1 for null terminator
+        carr = CArray(
+            ctype=ctype,
+            elem=CType("char"),
+            loc=loc,
+            min=buf,
+            max=buf,
+        )
+        return FlattenResult(decls={ctype: carr}, errors=[])
+
     elif "$ref" in schema:
         resolved = _follow_ref(schema, loc, curr_resolver)
         (target_location, contents, target_resolver) = resolved
@@ -240,7 +253,7 @@ def flatten_with_resolver[K: str](
                 acc.errors.append(e)
             elif "x-jsmn-type" in s.value:
                 ty = s.value.get("type")
-                if ty == "object" or ty == "array" or "allOf" in s.value:
+                if ty in ("object", "array", "string") or "allOf" in s.value:
                     acc |= _walk_any(s.value, s.location, resolver)
         return acc
 

@@ -89,6 +89,14 @@ components:
       items:
         $ref: "forge://test/targets/v0#/components/schemas/target_a"
 
+    # ── Top-level string cases ──────────────────────────────────────
+
+    # Path D — top-level string
+    top_string:
+      type: string
+      x-jsmn-type: top_string
+      maxLength: 32
+
     # ── $ref cases ──────────────────────────────────────────────────
 
     # Path A→C→A — property → $ref → object

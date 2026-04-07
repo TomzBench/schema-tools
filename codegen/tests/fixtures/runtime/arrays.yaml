@@ -129,6 +129,12 @@ components:
               maxItems: 3
               items: { type: integer, format: uint32 }
 
+    # Top-level named string
+    top_label:
+      type: string
+      x-jsmn-type: top_label
+      maxLength: 32
+
     # Top-level VLA of structs
     top_vla_points:
       type: array

@@ -53,6 +53,7 @@ def test_flatten_collects_all_structs(registry: Registry) -> None:
         CType("allof_nested"),
         CType("allof_nested_child"),
         CType("allof_required"),
+        CType("top_string"),
     }
 
 
@@ -93,6 +94,16 @@ def test_flatten_top_level_array_ref(registry: Registry) -> None:
     assert decl.elem == CType("target_a")
     assert decl.min == 0
     assert decl.max == 8
+
+
+def test_flatten_top_level_string(registry: Registry) -> None:
+    specs = [r.contents for x in registry if (r := registry.get(x)) is not None]
+    result = flatten_with_resolver(*specs, resolver=registry.resolver())
+    decl = result.decls[CType("top_string")]
+    assert isinstance(decl, CArray)
+    assert decl.elem == CType("char")
+    assert decl.min == 33  # maxLength(32) + 1
+    assert decl.max == 33
 
 
 def test_flatten_allof_inline(registry: Registry) -> None:

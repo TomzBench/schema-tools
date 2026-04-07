@@ -19,6 +19,7 @@ annotated object (`x-jsmn-type`) can be discovered. Combinational keywords
 | **B**  | `type: array`  + `x-jsmn-type` | Record CArray, recurse into `items`              |
 | **B'** | `type: array`  (no annotation)     | Follow `items` (no decl emitted)                 |
 | **C**  | `$ref`                             | Resolve via registry, recurse                    |
+| **D**  | `type: string` + `x-jsmn-type`     | Record CArray (string typedef)                   |
 
 ## Test matrix
 
@@ -37,6 +38,12 @@ annotated object (`x-jsmn-type`) can be discovered. Combinational keywords
 | ----- | ---------------------------------- | --------------- | ------------------------------- |
 | B→A   | Top-level array of inline objects  | `top_array`     | `top_array`, `top_array_item`   |
 | B→C→A | Top-level array → $ref → object    | `top_arr_ref`   | `top_arr_ref`, `target_a`       |
+
+### Top-level strings (spec_a only)
+
+| Path | Description      | Entry schema | Discovered names |
+| ---- | ---------------- | ------------ | ---------------- |
+| D    | Top-level string | `top_string` | `top_string`     |
 
 ### Cross-spec $ref (spec_a → spec_b)
 
