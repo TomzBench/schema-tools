@@ -545,7 +545,7 @@ fmt_int(jt_sacc_t val, char (*buf)[20], uint8_t *sz)
     if (val >= 0) {
         return fmt_uint((jt_acc_t)val, buf, sz);
     } else {
-        const char *result = fmt_uint((jt_acc_t)(-(val + 1)) + 1, buf, sz);
+        fmt_uint((jt_acc_t)(-(val + 1)) + 1, buf, sz);
         (*buf)[20 - ++*sz] = '-';
         return (const char *)&(*buf)[20 - *sz];
     }

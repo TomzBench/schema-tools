@@ -6,6 +6,8 @@
 static const char {{ prefix ~ "strings"}}[] =
 {% for offset, name in strings %}
     "{{ name }}\0" /* {{ offset }} */
+{% else %}
+    ""
 {% endfor -%}
 ;
 
@@ -14,6 +16,8 @@ static const struct jt_array {{ prefix ~ "arrays" }}[] = {
 {% for a in array_descriptors %}
     /* [{{ loop.index0 }}] {{ a | comment }} */
     { {{ a | array_kind }}, 0, {{ a.max }}, {{ a | elem_size }}, {{ a | elem_expr }} },
+{% else %}
+    {0}
 {% endfor -%}
 };
 
@@ -22,6 +26,8 @@ static const struct jt_field {{ prefix ~ "fields" }}[] = {
 {% for f in field_descriptors %}
     /* [{{ loop.index0 }}] {{ f | comment }} */
     { {{ f | name_offset }}, {{ f | value_offset }}, {{ f | present_offset }}, {{ f | type_expr }} },
+{% else %}
+    {0}
 {% endfor -%}
 };
 
@@ -30,6 +36,8 @@ static const struct jt_struct {{ prefix ~ "structs" }}[] = {
 {% for s in struct_descriptors %}
     /* [{{ loop.index0 }}] {{ s | comment }} */
     { {{ s.nfields }}, 0, {{ s | size_expr }}, {{ s.ntoks }}, {{ s.field0 }} },
+{% else %}
+    {0}
 {% endfor -%}
 };
 
