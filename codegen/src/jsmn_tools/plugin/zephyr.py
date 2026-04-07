@@ -150,6 +150,18 @@ def collect(workspace: list[Path], config: dict[str, str]) -> Collection:
         if extend:
             extend(jinja_env)
 
+    # TODO: LIMITATION: The registry is built without a retrieve callback
+    # or document-scoped resolvers, so fragment-only $refs (e.g.,
+    # "#/components/schemas/foo") cannot be resolved by the global
+    # resolver — it has no base_uri context. Full URIs work fine.
+    #
+    # Fix: use Registry(retrieve=...) with a zephyr:// aware callback,
+    # and create resolvers via registry.resolver(base_uri=...) so
+    # fragment-only refs resolve against the current document's $id.
+    #
+    # Call sites to validate when fixed:
+    #   - jsmn/flatten.py   _follow_ref()    (workaround: reconstructs full URI from loc[0])
+    #   - jsmn/filters.py   json_pointer()   (exposed to templates, currently only receives full URIs)
     return Collection(
         registry=resources @ Registry(),
         environment=jinja_env,

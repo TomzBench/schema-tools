@@ -86,12 +86,14 @@ def _follow_ref(
     loc: Location,
     curr_resolver: Resolver,
 ) -> tuple[Location, Any, Resolver]:
-    base, fragment = urldefrag(schema["$ref"])
+    ref = schema["$ref"]
+    base, fragment = urldefrag(ref)
     if not base:
         base = loc[0]
+        ref = f"{base}#{fragment}" if fragment else base
     location_fragment = Location.from_pointer(fragment)
     target_location = Location.from_segments(base, *location_fragment)
-    resolved = curr_resolver.lookup(schema["$ref"])
+    resolved = curr_resolver.lookup(ref)
     return (target_location, resolved.contents, resolved.resolver)
 
 
