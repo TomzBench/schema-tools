@@ -70,6 +70,28 @@ int32_t
 	return jt_encode(&{{ prefix ~ "schemas" }}, dst, dlen, src, type);
 }
 
+int32_t
+{{ prefix }}pack(
+    uint8_t *dst,
+    uint32_t dlen,
+    const struct jt_part *parts,
+    uint32_t n)
+{
+	return jt_pack(&{{ prefix ~ "schemas" }}, dst, dlen, parts, n);
+}
+
+int32_t
+{{ prefix }}unpack(
+    jsmntok_t *toks,
+    uint32_t ntoks,
+    const char *src,
+    uint32_t slen,
+    struct jt_part *parts,
+    uint32_t n)
+{
+	return jt_unpack(&{{ prefix ~ "schemas" }}, toks, ntoks, src, slen, parts, n);
+}
+
 {# --- Struct Loop --- #}
 {% for s in struct_descriptors if s is user_decl %}
 {% set idx = (s | type_prefix_or(prefix)) | upper ~ (s | nameify) | upper ~ "_KEY" -%}

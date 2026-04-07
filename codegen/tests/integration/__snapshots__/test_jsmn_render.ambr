@@ -45,6 +45,20 @@
       const void *src,
       jt_type_t type);
   
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
+  
   int32_t jsmn_decode_every_type_tok(
       struct every_type *dst,
       const char *src,
@@ -137,6 +151,20 @@
       const void *src,
       jt_type_t type);
   
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
+  
   int32_t jsmn_decode_vla_combos_tok(
       struct vla_combos *dst,
       const char *src,
@@ -216,6 +244,20 @@
       uint32_t dlen,
       const void *src,
       jt_type_t type);
+  
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
   
   int32_t jsmn_decode_child_tok(
       struct child *dst,
@@ -358,6 +400,28 @@
   }
   
   int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
+  }
+  
+  int32_t
   jsmn_decode_every_type_tok(
       struct every_type *dst,
       const char *src,
@@ -491,6 +555,28 @@
   }
   
   int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
+  }
+  
+  int32_t
   jsmn_decode_vla_combos_tok(
       struct vla_combos *dst,
       const char *src,
@@ -603,6 +689,28 @@
       jt_type_t type)
   {
   	return jt_encode(&jsmn_schemas, dst, dlen, src, type);
+  }
+  
+  int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
   }
   
   int32_t
@@ -1281,6 +1389,14 @@
       const struct jt_struct *structs; // struct descriptors
   };
   
+  /* ── Pack/unpack: keyed multi-type composition ─────────────────────── */
+  
+  struct jt_part {
+      const char *key;    // field name in outer object
+      void       *data;   // typed struct/array/primitive pointer
+      jt_type_t   type;   // schema type for encode/decode dispatch
+  };
+  
   #ifdef __cplusplus
   extern "C" {
   #endif
@@ -1300,6 +1416,22 @@
             uint32_t                 dlen,
             const void              *src,
             jt_type_t                type);
+  
+  int
+  jt_pack(const struct jt_schemas *schemas,
+          uint8_t                 *dst,
+          uint32_t                 dlen,
+          const struct jt_part    *parts,
+          uint32_t                 n);
+  
+  int
+  jt_unpack(const struct jt_schemas *schemas,
+            jsmntok_t               *toks,
+            uint32_t                 ntoks,
+            const char              *src,
+            uint32_t                 slen,
+            struct jt_part          *parts,
+            uint32_t                 n);
   
   #ifdef __cplusplus
   }
@@ -2064,6 +2196,74 @@
       struct cursor  cursor = {.ptr = dst, .pos = 0, .len = dlen};
       struct encoder enc = {.cursor = &cursor, .schemas = schemas};
       return encode_type(&enc, (void *)src, type);
+  }
+  
+  int
+  jt_pack(const struct jt_schemas *schemas,
+          uint8_t                 *dst,
+          uint32_t                 dlen,
+          const struct jt_part    *parts,
+          uint32_t                 n)
+  {
+      struct cursor  cursor = {.ptr = dst, .pos = 0, .len = dlen};
+      struct encoder enc = {.cursor = &cursor, .schemas = schemas};
+      int            err;
+  
+      cursor_push_safe(&cursor, '{');
+      for (uint32_t i = 0; i < n; i++) {
+          if (i) cursor_push_safe(&cursor, ',');
+  
+          cursor_push_safe(&cursor, '"');
+          cursor_copy_safe(&cursor, parts[i].key, strlen(parts[i].key));
+          cursor_push_safe(&cursor, '"');
+          cursor_push_safe(&cursor, ':');
+  
+          err = encode_type(&enc, (void *)parts[i].data, parts[i].type);
+          if (err < 0) return err;
+      }
+      cursor_push_safe(&cursor, '}');
+      return cursor.pos;
+  fail:
+      return JT_ERR_BUFFER;
+  }
+  
+  int
+  jt_unpack(const struct jt_schemas *schemas,
+            jsmntok_t               *toks,
+            uint32_t                 ntoks,
+            const char              *src,
+            uint32_t                 slen,
+            struct jt_part          *parts,
+            uint32_t                 n)
+  {
+      int         atoks;
+      jsmn_parser parser;
+  
+      jsmn_init(&parser);
+      atoks = jsmn_parse(&parser, src, slen, toks, ntoks);
+      if (atoks < 0) return atoks;
+      if (atoks < 1) return JT_ERR_PARTIAL;
+      if (toks[0].type != JSMN_OBJECT) return JT_ERR_TYPE;
+  
+      struct decoder dec = {.schemas = schemas, .json = src, .toks = toks};
+      int            nkeys = toks[0].size;
+      int            t = 1;
+  
+      for (int k = 0; k < nkeys; k++) {
+          int vtok = t + 1;
+  
+          for (uint32_t i = 0; i < n; i++) {
+              if (!tok_memcmp(src, &toks[t], parts[i].key,
+                              strlen(parts[i].key))) {
+                  int err = decode_type(&dec, parts[i].data, vtok,
+                                        parts[i].type);
+                  if (err < 0) return err;
+                  break;
+              }
+          }
+          t = vtok + tok_skip(toks, vtok);
+      }
+      return parser.pos;
   }
   
   '''

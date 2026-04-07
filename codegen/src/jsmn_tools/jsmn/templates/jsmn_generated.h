@@ -41,6 +41,20 @@ int32_t {{ prefix }}encode(
     const void *src,
     jt_type_t type);
 
+int32_t {{ prefix }}pack(
+    uint8_t *dst,
+    uint32_t dlen,
+    const struct jt_part *parts,
+    uint32_t n);
+
+int32_t {{ prefix }}unpack(
+    jsmntok_t *toks,
+    uint32_t ntoks,
+    const char *src,
+    uint32_t slen,
+    struct jt_part *parts,
+    uint32_t n);
+
 {# --- Prototype declarations --- #}
 {% for decl in declarations %}
 {% if decl is struct_decl and decl is user_decl and not decl is array_decl %}

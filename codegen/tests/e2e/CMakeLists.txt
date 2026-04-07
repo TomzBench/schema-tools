@@ -77,3 +77,8 @@ add_executable(test_generated test_generated.c)
 target_link_libraries(test_generated PRIVATE unity::framework runtime)
 add_test(NAME test_generated COMMAND test_generated)
 target_include_directories(test_generated PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
+add_executable(test_pack test_pack.c)
+target_link_libraries(test_pack PRIVATE unity::framework runtime)
+add_test(NAME test_pack COMMAND test_pack)
+target_include_directories(test_pack PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

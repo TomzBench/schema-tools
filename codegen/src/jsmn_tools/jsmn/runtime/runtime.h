@@ -109,6 +109,14 @@ struct jt_schemas {
     const struct jt_struct *structs; // struct descriptors
 };
 
+/* ── Pack/unpack: keyed multi-type composition ─────────────────────── */
+
+struct jt_part {
+    const char *key;    // field name in outer object
+    void       *data;   // typed struct/array/primitive pointer
+    jt_type_t   type;   // schema type for encode/decode dispatch
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -128,6 +136,22 @@ jt_encode(const struct jt_schemas *schemas,
           uint32_t                 dlen,
           const void              *src,
           jt_type_t                type);
+
+int
+jt_pack(const struct jt_schemas *schemas,
+        uint8_t                 *dst,
+        uint32_t                 dlen,
+        const struct jt_part    *parts,
+        uint32_t                 n);
+
+int
+jt_unpack(const struct jt_schemas *schemas,
+          jsmntok_t               *toks,
+          uint32_t                 ntoks,
+          const char              *src,
+          uint32_t                 slen,
+          struct jt_part          *parts,
+          uint32_t                 n);
 
 #ifdef __cplusplus
 }
