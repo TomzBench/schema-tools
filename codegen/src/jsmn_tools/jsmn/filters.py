@@ -152,7 +152,22 @@ def filters(
     }
 
     cdecl_index = {v.ctype.name: v for v in decls}
-    descriptor_index = {d.ctype: d for d in table.values()}
+    # NOTE FieldDescriptors are excluded — a required struct-typed field
+    # shares its resolved CType with the struct's own StructDescriptor,
+    # so including fields would create key collisions that resolve to the
+    # wrong schema location. If per-field descriptor lookup is needed,
+    # use a composite key: (parent CType, field name).
+    #
+    #   field_index = {
+    #       (table[d.parent].ctype, d.name): d
+    #       for d in table.values()
+    #       if isinstance(d, FieldDescriptor)
+    #   }
+    descriptor_index: dict[CType, StructDescriptor | ArrayDescriptor] = {
+        d.ctype: d
+        for d in table.values()
+        if isinstance(d, (StructDescriptor, ArrayDescriptor))
+    }
 
     def qualifier(ctype: CType) -> str:
         qual = cdecl_index.get(ctype.name)
