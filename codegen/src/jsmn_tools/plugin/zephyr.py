@@ -49,11 +49,12 @@ def parse_autoconfig(build_dir: str) -> dict[str, str]:
     return config
 
 
-def parse_workspace() -> list[Path]:
+def parse_workspace(source_dir: Path) -> list[Path]:
     util, Manifest = _require_west()
     topdir = Path(util.west_topdir())
     manifest = Manifest.from_topdir(topdir)
-    return [topdir / p.path for p in manifest.projects if manifest.is_active(p)]
+    dirs = [topdir / p.path for p in manifest.projects if manifest.is_active(p)]
+    return list(dict.fromkeys(p.resolve() for p in [*dirs, source_dir]))
 
 
 class InvalidResourceError(Exception):
@@ -129,6 +130,12 @@ def collect(workspace: list[Path], config: dict[str, str]) -> Collection:
         project_dir: plugin.collect(config)
         for project_dir, plugin in plugins.items()
     }
+
+    # Catch duplicate module names (would produce $id collisions in registry)
+    modules = [p["module"] for p in projects.values()]
+    dupes = {m for m in modules if modules.count(m) > 1}
+    if dupes:
+        raise InvalidPlugin(f"Duplicate module name(s): {dupes}")
 
     # For each project, load all the resources
     resources = [

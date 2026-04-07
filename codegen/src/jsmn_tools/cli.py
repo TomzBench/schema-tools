@@ -68,7 +68,7 @@ def _generate_zephyr(args: argparse.Namespace) -> None:
     )
 
     config = parse_autoconfig(args.build_dir)
-    workspace = parse_workspace()
+    workspace = parse_workspace(Path(args.source_dir))
     collection = collect(workspace, config)
     errors = render(
         collection,
@@ -127,6 +127,11 @@ def main() -> None:
         "--build-dir",
         required=True,
         help="Zephyr build directory (CMAKE_BINARY_DIR)",
+    )
+    zephyr_parser.add_argument(
+        "--source-dir",
+        required=True,
+        help="Application source directory (CMAKE_SOURCE_DIR)",
     )
     zephyr_parser.add_argument(
         "--prefix",
