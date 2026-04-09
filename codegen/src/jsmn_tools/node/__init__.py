@@ -20,6 +20,7 @@ from .node import (
     data,
 )
 from .ref import Ref
+from .uri import SchemeURI
 
 __all__ = [
     "ROOT",
@@ -35,6 +36,7 @@ __all__ = [
     "Ref",
     "SchemaKind",
     "SchemaNode",
+    "SchemeURI",
     "SortKey",
     "canonical",
     "data",

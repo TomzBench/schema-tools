@@ -10,9 +10,11 @@ from jsmn_tools.jsmn.filters import (
     camel_case,
     filters,
     snake_case,
+)
+from jsmn_tools.jsmn.filters import (
     tests as jinja_tests,
 )
-from jsmn_tools.jsmn.prepare import codegen
+from jsmn_tools.jsmn.prepare import bundle_codegen
 
 yaml = YAML(typ="safe")
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "render"
@@ -25,8 +27,8 @@ def tag_tests() -> dict[str, Any]:
         yaml.load(spec), default_specification=DRAFT202012
     )
     registry: Registry[Any] = [resource] @ Registry()
-    compiled = codegen(registry)
-    return jinja_tests(compiled.original, compiled.resolver)
+    resolver, compiled = bundle_codegen(registry)
+    return jinja_tests(compiled["original"], resolver)
 
 
 def _find_decl(tag_tests, compiled_original, name):
@@ -44,7 +46,8 @@ def originals() -> list:
         yaml.load(spec), default_specification=DRAFT202012
     )
     registry: Registry[Any] = [resource] @ Registry()
-    return codegen(registry).original
+    _, bundle = bundle_codegen(registry)
+    return bundle["original"]
 
 
 def test_tagged_string(tag_tests, originals) -> None:
@@ -111,8 +114,12 @@ def test_json_pointer() -> None:
         yaml.load(spec), default_specification=DRAFT202012
     )
     registry: Registry[Any] = [resource] @ Registry()
-    compiled = codegen(registry)
-    fns = filters(compiled.table, compiled.declarations, compiled.resolver)
+    resolver, compiled = bundle_codegen(registry)
+    fns = filters(
+        compiled["table"],
+        compiled["declarations"],
+        resolver,
+    )
     result = fns["json_pointer"](
         "forge://test/tags/v0#/components/schemas/tagged_string"
     )

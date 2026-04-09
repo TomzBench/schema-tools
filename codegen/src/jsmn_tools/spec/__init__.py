@@ -11,9 +11,9 @@ from jsmn_tools.node import (
 
 from .asyncapi_3_0 import AsyncApi30Keys
 from .asyncapi_3_0 import obj_root as ASYNCAPI_3_0
+from .draft import parse_draft, split_draft
 from .openapi_3_1 import OpenApi31Keys
 from .openapi_3_1 import obj_root as OPENAPI_3_1
-from .parse_draft import parse_draft
 
 __all__ = [
     "ASYNCAPI_3_0",
@@ -29,4 +29,5 @@ __all__ = [
     "parse_draft",
     "sort_set",
     "sort_set_by",
+    "split_draft",
 ]

@@ -1,6 +1,6 @@
 openapi: "3.1.0"
 info:
-  title: Network WiFi
+  title: Network
   version: "0.1.0"
 paths:
   /api/v1/wifi:

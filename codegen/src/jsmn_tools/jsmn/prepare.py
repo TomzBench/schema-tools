@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+import re
+from pathlib import Path
+from typing import TYPE_CHECKING, TypedDict
 
+from jinja2 import (
+    BaseLoader,
+    ChoiceLoader,
+    DictLoader,
+    Environment,
+    PackageLoader,
+)
 from referencing import Registry
 
 from jsmn_tools.spec import ASYNCAPI_3_0, OPENAPI_3_1
@@ -20,6 +28,7 @@ from .descriptor import (
     sum_encode_len_with_cache,
     sum_ntoks_with_cache,
 )
+from .filters import filters, tests
 from .flatten import flatten_with_resolver
 from .ir import CArray, CDecl, CStruct, CType, CUnion, Dim, Field, FixedDims
 from .mangle import dim_walk, make_maybe, make_optional, make_vla, mangle
@@ -220,21 +229,37 @@ def build_tables(
     return strings, table
 
 
-@dataclass(frozen=True)
-class CodegenBundle:
+def read_and_strip(p: Path) -> str:
+    return re.sub(
+        r'^#include\s+"[^"]*".*\n',
+        "",
+        p.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+
+
+def codegen_loaders() -> tuple[BaseLoader, ...]:
+    runtime_dir = Path(__file__).resolve().parent / "runtime"
+    runtime_mapping = {
+        "jsmn.h": read_and_strip(runtime_dir / "jsmn.h"),
+        "runtime.h": read_and_strip(runtime_dir / "runtime.h"),
+        "runtime.c": read_and_strip(runtime_dir / "runtime.c"),
+    }
+    runtime_loader = DictLoader(runtime_mapping)
+    package_loader = PackageLoader("jsmn_tools", "jsmn/templates")
+    return runtime_loader, package_loader
+
+
+class CodegenBundle(TypedDict):
     original: list[CDecl]
     declarations: list[CDecl]
     table: dict[Key, Descriptors]
+    descriptors: list[Descriptors]
     strings: list[tuple[int, str]]
-    resolver: Resolver
-
-    @classmethod
-    def empty(cls) -> CodegenBundle:
-        reg = Registry()
-        return cls([], [], {}, [], reg.resolver())
+    specifications: list[dict]
 
 
-def codegen(reg: Registry) -> CodegenBundle:
+def bundle_codegen(reg: Registry) -> tuple[Resolver, CodegenBundle]:
     openapi = [r.contents for r in reg.values() if "openapi" in r.contents]
     asyncapi = [r.contents for r in reg.values() if "asyncapi" in r.contents]
     resolver = reg.resolver()
@@ -251,13 +276,62 @@ def codegen(reg: Registry) -> CodegenBundle:
     sorted_user = sort_declarations(flattened.decls)
     extended = extend_declarations(sorted_user)
     strings, table = build_tables(sorted_user)
-    return CodegenBundle(
+    descriptors = sorted(table.values(), key=lambda d: d.key.pos)
+    return resolver, CodegenBundle(
         original=sorted_user,
         declarations=extended,
+        descriptors=descriptors,
         table=table,
         strings=list(strings.strings()),
-        resolver=resolver,
+        specifications=openapi + asyncapi,
     )
+
+
+def extract_loader(loader: BaseLoader | None) -> list[BaseLoader]:
+    if isinstance(loader, ChoiceLoader):
+        return list(loader.loaders)
+    elif loader is not None:
+        return [loader]
+    else:
+        return []
+
+
+def join_loaders(*loaders: BaseLoader | None) -> ChoiceLoader:
+    extracted = [extract_loader(loader) for loader in loaders]
+    return ChoiceLoader([nested for loader in extracted for nested in loader])
+
+
+def join_jinja(*envs: Environment) -> Environment:
+    # TODO: env settings (trim_blocks, lstrip_blocks, etc.) are hardcoded.
+    #       Accept **kwargs to allow callers to override, or inherit from
+    #       the first env.
+    jinja_env = Environment(
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    for other in envs:
+        jinja_env.filters.update(other.filters)
+        jinja_env.tests.update(other.tests)
+        jinja_env.globals.update(other.globals)
+        jinja_env.loader = join_loaders(jinja_env.loader, other.loader)
+    return jinja_env
+
+
+def extend_codegen(
+    dst: Environment,
+    src: CodegenBundle,
+    *,
+    resolver: Resolver,
+    prefix: str | None = None,
+) -> None:
+    runtime_loader, package_loader = codegen_loaders()
+    dst.loader = join_loaders(dst.loader, runtime_loader, package_loader)
+    dst.tests.update(tests(src["original"], resolver))
+    dst.filters.update(filters(src["table"], src["declarations"], resolver))
+    dst.globals.update(src)
+    if prefix:
+        dst.globals |= {"prefix": prefix}
 
 
 # NOTE currently the bundle pipeline for doc tooling is join(). However, should

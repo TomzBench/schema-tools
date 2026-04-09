@@ -12,13 +12,13 @@ yaml = YAML(typ="safe")
 @pytest.fixture
 def walk_data() -> dict[str, Any]:
     walk = Path(__file__).parent.parent.absolute() / "fixtures" / "join"
-    return {file.stem: file.absolute() for file in walk.iterdir()}
+    return {file.stem: yaml.load(file) for file in walk.iterdir()}
 
 
 def test_normalize_refs(walk_data: dict[str, Any]) -> None:
     """$ref values are rewritten in schema-aware contexts but left
     untouched inside data traps (default, x-*)."""
-    result = join(walk_data["refs"], scheme="forge", draft=OPENAPI_3_1)
+    result = join(walk_data["refs"], draft=OPENAPI_3_1)
     assert result.conflicts == []
     schemas = result.value["components"]["schemas"]
 

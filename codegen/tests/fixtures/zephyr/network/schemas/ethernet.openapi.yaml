@@ -1,7 +1,6 @@
 openapi: "3.1.0"
-$id: "zephyr://network/ethernet/v0"
 info:
-  title: Network Ethernet
+  title: Network
   version: "0.1.0"
 paths:
   /api/v1/ethernet:

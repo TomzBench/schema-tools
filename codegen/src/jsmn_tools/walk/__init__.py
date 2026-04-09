@@ -8,7 +8,7 @@ from .diff import (
     missing,
     missmatch,
 )
-from .join import join
+from .join import JoinConflict, join
 from .merge import MergeConflict, MergeResult, merge
 from .normalize import normalize
 from .prefixer import prefixer
@@ -17,6 +17,7 @@ from .walk import Step, walk
 __all__ = [
     "Diff",
     "Extra",
+    "JoinConflict",
     "MergeConflict",
     "MergeResult",
     "MissMatch",

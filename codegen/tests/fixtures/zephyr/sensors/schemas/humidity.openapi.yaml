@@ -1,7 +1,6 @@
 openapi: "3.1.0"
-$id: "zephyr://sensors/humidity/v0"
 info:
-  title: Sensors Humidity
+  title: Sensors
   version: "0.1.0"
 paths:
   /api/v1/humidity:

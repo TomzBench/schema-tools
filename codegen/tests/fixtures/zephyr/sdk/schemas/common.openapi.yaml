@@ -1,7 +1,6 @@
 openapi: "3.1.0"
-$id: "zephyr://sdk/common/v0"
 info:
-  title: SDK Common
+  title: SDK
   version: "0.1.0"
 paths:
   /api/v1/status:

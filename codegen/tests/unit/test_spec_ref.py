@@ -45,16 +45,34 @@ ASYNCAPI_SUFFIX = ".asyncapi.yaml"
             OPENAPI_SUFFIX,
             "https://example.com/schema.json#/Foo",
         ),
-        # different scheme — unchanged
+        # other virtual scheme — also rewritten
         (
             "other://mod/res/v1#/path",
             OPENAPI_SUFFIX,
-            "other://mod/res/v1#/path",
+            "./mod.openapi.yaml#/path",
+        ),
+        # http — passthrough
+        (
+            "http://mod/res/v1#/path",
+            OPENAPI_SUFFIX,
+            "http://mod/res/v1#/path",
+        ),
+        # https — passthrough
+        (
+            "https://mod/res/v1#/path",
+            OPENAPI_SUFFIX,
+            "https://mod/res/v1#/path",
+        ),
+        # file — passthrough
+        (
+            "file://mod/res/v1#/path",
+            OPENAPI_SUFFIX,
+            "file://mod/res/v1#/path",
         ),
     ],
 )
 def test_normalize(raw: str, suffix: str, expected: str) -> None:
-    assert Ref(raw).normalize("forge", suffix) == expected
+    assert Ref(raw).normalize(suffix) == expected
 
 
 def test_is_local() -> None:

@@ -1,15 +1,8 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
-_SCHEME_RE = re.compile(
-    r"^(?P<scheme>[a-zA-Z][a-zA-Z0-9-]*)://"
-    r"(?P<module>[a-zA-Z0-9_-]+)/"
-    r"(?P<resource>[a-zA-Z0-9_-]+)/"
-    r"v(?P<version>\d+)"
-    r"(?:#(?P<fragment>.*))?$"
-)
+from jsmn_tools.node.uri import SchemeURI
 
 
 @dataclass(frozen=True)
@@ -24,7 +17,7 @@ class Ref:
     def is_relative(self) -> bool:
         return self.raw.startswith("./")
 
-    def normalize(self, scheme: str, suffix: str) -> str:
+    def normalize(self, suffix: str) -> str:
         if self.is_local:
             return self.raw
         if self.is_relative:
@@ -33,10 +26,8 @@ class Ref:
             # logging is available.
             idx = self.raw.find("#")
             return self.raw[idx:] if idx != -1 else self.raw
-        m = _SCHEME_RE.match(self.raw)
-        if m and m.group("scheme") == scheme:
-            module = m.group("module")
-            fragment = m.group("fragment")
-            base = f"./{module}{suffix}"
-            return f"{base}#{fragment}" if fragment else base
+        uri = SchemeURI.parse(self.raw)
+        if uri and not uri.is_passthrough:
+            base = f"./{uri.module}{suffix}"
+            return f"{base}#{uri.fragment}" if uri.fragment else base
         return self.raw
