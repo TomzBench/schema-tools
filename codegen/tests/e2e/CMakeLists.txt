@@ -4,7 +4,7 @@ project(jsmn-tools-e2e LANGUAGES C)
 # Load jsmn-tools cmake modules
 find_program(python3 python REQUIRED)
 execute_process(
-    COMMAND python -m jsmn_tools.cli --cmake-dir OUTPUT_VARIABLE JSMN_TOOLS_CMAKE_MODULES_DIR
+    COMMAND python -m jsmn_tools.cli cmake-dir OUTPUT_VARIABLE JSMN_TOOLS_CMAKE_MODULES_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 find_package(JsmnTools REQUIRED CONFIG HINTS "${JSMN_TOOLS_CMAKE_MODULES_DIR}")
@@ -25,13 +25,14 @@ enable_testing()
 # cmake-format: off
 file(GLOB specs "${fixtures}/*.yaml")
 message(STATUS "specs: ${fixtures} ${specs}")
-jsmn_tools_render(TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
-								${templates}/runtime.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.h
-								${templates}/jsmn.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h
-								${templates}/jsmn_generated.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h
-								${templates}/jsmn_generated.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c
-					  SPECS ${specs}
-					  TARGET runtime_source)
+jsmn_render(runtime_source
+	TEMPLATES ${templates}/runtime.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.c
+			  ${templates}/runtime.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/runtime.h
+			  ${templates}/jsmn.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h
+			  ${templates}/jsmn_generated.h.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h
+			  ${templates}/jsmn_generated.c.jinja2 ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c
+	SPECS ${specs})
+
 # cmake-format: on
 add_executable(test_cursor test_cursor.c)
 add_dependencies(test_cursor runtime_source)
