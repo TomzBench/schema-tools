@@ -4,11 +4,10 @@ project(jsmn-tools-e2e LANGUAGES C)
 # Load jsmn-tools cmake modules
 find_program(python3 python REQUIRED)
 execute_process(
-    COMMAND python -m jsmn_tools.cli cmake-dir OUTPUT_VARIABLE JSMN_TOOLS_CMAKE_MODULES_DIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-find_package(JsmnTools REQUIRED CONFIG HINTS "${JSMN_TOOLS_CMAKE_MODULES_DIR}")
-#jsmn_tools_render(foo OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/jsmn-runtime)
+  COMMAND python -m jsmn_tools.cli cmake-dir
+  OUTPUT_VARIABLE JSMN_TOOLS_MODULES_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+find_package(JsmnTools REQUIRED CONFIG HINTS "${JSMN_TOOLS_MODULES_DIR}")
 
 # NOTE we peak into runtime.c files, this is more of a unit test.
 cmake_path(SET workspace NORMALIZE "${CMAKE_SOURCE_DIR}/../../../")
@@ -61,16 +60,17 @@ add_test(NAME test_tok_ex COMMAND test_tok_ex)
 add_executable(test_descriptor test_descriptor.c)
 add_dependencies(test_descriptor runtime_source)
 target_link_libraries(test_descriptor PRIVATE unity::framework)
-target_include_directories(test_descriptor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(test_descriptor
+                           PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 add_test(NAME test_descriptor COMMAND test_descriptor)
 
 add_library(
-    runtime
-    ${CMAKE_CURRENT_BINARY_DIR}/runtime.h #
-    ${CMAKE_CURRENT_BINARY_DIR}/runtime.c #
-    ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h #
-    ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h #
-    ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c #
+  runtime
+  ${CMAKE_CURRENT_BINARY_DIR}/runtime.h #
+  ${CMAKE_CURRENT_BINARY_DIR}/runtime.c #
+  ${CMAKE_CURRENT_BINARY_DIR}/jsmn.h #
+  ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.h #
+  ${CMAKE_CURRENT_BINARY_DIR}/jsmn_generated.c #
 )
 target_compile_options(runtime PUBLIC -DJT_HAS_FLOAT -DJT_HAS_INT64)
 

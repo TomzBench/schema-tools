@@ -10,6 +10,7 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
+from jsmn_tools.jsmn import join_jinja
 from jsmn_tools.node import ObjectNode, SchemeURI
 from jsmn_tools.plugin.loader import (
     BundleResult,
@@ -56,7 +57,7 @@ def parse_workspace() -> list[Path]:
 
 
 # REVIEW: per-module grouping may be dead code. The flat join
-# (load_zephyr_bundle) merges all modules into 1-per-draft, and normalize
+# (load_zephyr_workspace_bundle) merges all modules into 1-per-draft, and normalize
 # rewrites scheme $refs to relative paths before join. The per-module
 # Registry produced by join_zephyr_registry has broken cross-module ref
 # resolution anyway (relative file paths don't match scheme $ids).
@@ -73,7 +74,7 @@ def split_uri(*content: Any) -> dict[SchemeURI, list[Any]]:
 
 # REVIEW: see split_uri comment — this function and load_zephyr_registry
 # build a per-module Registry that is likely unnecessary. The flat join
-# via load_zephyr_bundle produces a working Registry for codegen.
+# via load_zephyr_workspace_bundle produces a working Registry for codegen.
 #
 # TODO: LIMITATION: The registry is built without a retrieve callback
 # or document-scoped resolvers, so fragment-only $refs (e.g.,
@@ -127,15 +128,24 @@ def load_zephyr_resource(
     return Resource.from_contents(spec, DRAFT202012)
 
 
-def load_zephyr_resources(build_dir: Path) -> list[Resource]:
+def load_zephyr_workspace_resources(config: dict[str, str]) -> list[Resource]:
     workspace = parse_workspace()
     plugins = load_plugins(workspace)
-    config = {"build_dir": str(build_dir)}
     return [r for plugin in plugins.values() for r in plugin.collect(config)]
 
 
-def load_zephyr_bundle(build_dir: Path) -> BundleResult:
-    resources = load_zephyr_resources(build_dir)
+def load_zephyr_application_resources(
+    config: dict[str, str],
+) -> tuple[dict[str, str], list[Resource]]:
+    if build_dir := config.get("build_dir"):
+        merged = {**config, **parse_autoconfig(Path(build_dir))}
+        return merged, load_zephyr_workspace_resources(merged)
+    else:
+        return config, load_zephyr_workspace_resources(config)
+
+
+def load_zephyr_workspace_bundle(config: dict[str, str]) -> BundleResult:
+    resources = load_zephyr_workspace_resources(config)
     specs = [r.contents for r in resources]
     openapi, asyncapi, other = split_draft(*specs)
     joined = join(*openapi, draft=OPENAPI_3_1)
@@ -148,18 +158,32 @@ def load_zephyr_bundle(build_dir: Path) -> BundleResult:
     )
 
 
-def load_zephyr_jinja(build_dir: Path) -> Environment:
-    autoconf = parse_autoconfig(build_dir)
+def load_zephyr_application_bundle(
+    config: dict[str, str],
+) -> tuple[dict[str, str], BundleResult]:
+    if build_dir := config.get("build_dir"):
+        merged = {**config, **parse_autoconfig(Path(build_dir))}
+        return merged, load_zephyr_workspace_bundle(merged)
+    else:
+        return config, load_zephyr_workspace_bundle(config)
+
+
+def load_zephyr_workspace_jinja(config: dict[str, str]) -> Environment:
     workspace = parse_workspace()
     plugins = load_plugins(workspace)
-    env = Environment(
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    for plugin in plugins.values():
-        extend = getattr(plugin, "extend", None)
-        if extend:
-            extend(env)
-    env.globals["autoconf"] = autoconf
-    return env
+    envs: list[Environment] = [
+        jinja(config)
+        for plugin in plugins.values()
+        if (jinja := getattr(plugin, "jinja", None))
+    ]
+    return join_jinja(*envs)
+
+
+def load_zephyr_application_jinja(
+    config: dict[str, str],
+) -> tuple[dict[str, str], Environment]:
+    if build_dir := config.get("build_dir"):
+        merged = {**config, **parse_autoconfig(Path(build_dir))}
+        return merged, load_zephyr_workspace_jinja(merged)
+    else:
+        return config, load_zephyr_workspace_jinja(config)
