@@ -28,6 +28,11 @@ Specific things to watch for:
 When in doubt, push back with a short explanation and an alternative. I'd rather
 have a 30-second conversation than undo a bad design later.
 
+## Git Commits
+
+Always use `git commit -s` for the Signed-off-by line. Never write
+Signed-off-by manually — it has led to fabricated names in the past.
+
 ## Code Structure
 
 ```
