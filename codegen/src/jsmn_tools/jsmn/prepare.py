@@ -184,10 +184,27 @@ def build_tables(
                 )
                 ref = add_array(arr)
         assert isinstance(ref, Key)
-        # NOTE that the top level array might be "named" explicitly, so we use that name for the ctype
-        #      (ref.pos) points to the top level (lastly iterated) array
         if name is not None:
-            arrays[ref.pos].ctype = CType(name)
+            # Named user types need their own descriptor entry so that:
+            # 1. loc points to their schema (where x-jsmn-prefix is stamped)
+            #    for prefix/nameify lookups in templates.
+            # 2. Two user types with the same shape don't overwrite each
+            #    other — the cache would alias them to the same entry and
+            #    the second rename would destroy the first type's descriptor.
+            # Copy shape from the cached (possibly anonymous) descriptor but
+            # give this user type its own entry with correct ctype and loc.
+            cached = arrays[ref.pos]
+            named = ArrayDescriptor(
+                key=Key(Table.ARRAY, len(arrays)),
+                loc=loc,
+                ntoks=cached.ntoks,
+                encode_len=cached.encode_len,
+                ctype=CType(name),
+                kind=cached.kind,
+                max=cached.max,
+                elem=cached.elem,
+            )
+            arrays.append(named)
         return ref
 
     for d in ordered:
