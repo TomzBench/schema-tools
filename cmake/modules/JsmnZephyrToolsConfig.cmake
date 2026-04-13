@@ -22,7 +22,7 @@
 #   )
 
 execute_process(
-  COMMAND python -m jsmn_tools.cli cmake-dir
+  COMMAND jsmn cmake-dir
   OUTPUT_VARIABLE JSMN_TOOLS_MODULES_DIR
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_package(JsmnTools REQUIRED HINTS ${JSMN_TOOLS_MODULES_DIR})
