@@ -318,6 +318,26 @@ def join_loaders(*loaders: BaseLoader | None) -> ChoiceLoader:
     return ChoiceLoader([nested for loader in extracted for nested in loader])
 
 
+def _deep_merge_globals(dst: dict, src: dict) -> None:
+    """Recursively merge src into dst.
+
+    - dict + dict -> recurse
+    - list + list -> extend in place
+    - anything else -> replace
+    Lets workspace plugins each contribute keys (dicts) or items (lists)
+    to a shared global without clobbering. Dedup is the caller's problem
+    since list elements may not be hashable.
+    """
+    for key, value in src.items():
+        existing = dst.get(key)
+        if isinstance(value, dict) and isinstance(existing, dict):
+            _deep_merge_globals(existing, value)
+        elif isinstance(value, list) and isinstance(existing, list):
+            existing.extend(value)
+        else:
+            dst[key] = value
+
+
 def join_jinja(*envs: Environment) -> Environment:
     # TODO: env settings (trim_blocks, lstrip_blocks, etc.) are hardcoded.
     #       Accept **kwargs to allow callers to override, or inherit from
@@ -330,8 +350,8 @@ def join_jinja(*envs: Environment) -> Environment:
     for other in envs:
         jinja_env.filters.update(other.filters)
         jinja_env.tests.update(other.tests)
-        jinja_env.globals.update(other.globals)
         jinja_env.loader = join_loaders(jinja_env.loader, other.loader)
+        _deep_merge_globals(jinja_env.globals, other.globals)
     return jinja_env
 
 
