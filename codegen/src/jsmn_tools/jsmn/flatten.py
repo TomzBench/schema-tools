@@ -187,6 +187,7 @@ def _walk_any(
         properties_location = loc.push("properties")
         props = Properties.from_object(schema, loc, curr_resolver)
         for required, prop_name, prop_schema in props.properties():
+            # NOTE: object properties have their own locations
             prop_loc = properties_location.push(prop_name)
             prop_ctype = _seek_ctype(prop_schema, prop_loc, curr_resolver)
             fields.append(Field(prop_name, prop_ctype, required))
@@ -202,7 +203,7 @@ def _walk_any(
             carr = CArray(
                 ctype=ctype,
                 elem=_seek_ctype(items, prop_loc, curr_resolver),
-                loc=prop_loc,
+                loc=loc,  # NOTE Array locations are the array node
                 min=schema.get("minItems", 0),
                 max=schema.get("maxItems", 0),  # TODO value error
             )
@@ -219,7 +220,7 @@ def _walk_any(
         carr = CArray(
             ctype=ctype,
             elem=CType("char"),
-            loc=loc,
+            loc=loc,  # NOTE: Array locations capture the array node
             min=buf,
             max=buf,
         )
