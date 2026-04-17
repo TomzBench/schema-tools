@@ -1,11 +1,15 @@
 from pathlib import Path
 
-project = "jsmn-tools"
+project = "Jsmn Tools"
 copyright = "2025, Altronix"
 author = "Altronix"
 
 extensions = [
     "myst_parser",
+    "sphinx_design",
+    "sphinx_copybutton",
+    "sphinxext.opengraph",
+    "sphinxcontrib.mermaid",
 ]
 
 source_suffix = {
@@ -13,7 +17,17 @@ source_suffix = {
     ".md": "markdown",
 }
 
-exclude_patterns = ["_build"]
+myst_enable_extensions = ["colon_fence"]
+
+exclude_patterns = [
+    "_build",
+    # Included inline into index.md via {include}; not built as standalone pages.
+    "how-it-works.md",
+    "custom-render.md",
+    "plugins.md",
+    "bundle.md",
+    "reference.md",
+]
 
 # Gracefully handle missing ai/local (gitignored, absent on fresh clone)
 if not (Path(__file__).parent / "ai" / "local").is_dir():

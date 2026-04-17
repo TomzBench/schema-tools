@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from jsmn_tools.node import Location
@@ -30,6 +31,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from referencing._core import Resolver
+
+
+class ShimMode(StrEnum):
+    NONE = "none"
+    EXTERN = "extern"
+    INLINE = "inline"
 
 
 # ── General-purpose filters ──────────────────────────────────────────
@@ -103,6 +110,13 @@ def tests(
     def is_union_ctype(ctype: CType | tuple[Variant, ...]) -> bool:
         return not isinstance(ctype, CType)
 
+    def is_public(d: Descriptors) -> bool:
+        if isinstance(d, StructDescriptor):
+            return True
+        if isinstance(d, ArrayDescriptor):
+            return d.ctype.name in array_names
+        return False
+
     # Tag lookup is a single resolver hit — no recursion. The decl's
     # location points to the schema where x-jsmn-type was found,
     # and x-jsmn-tag must be co-located on that same schema. Tags on
@@ -130,6 +144,7 @@ def tests(
         "user_decl": is_user_decl,
         "union_ctype": is_union_ctype,
         "tagged": is_tagged,
+        "public": is_public,
     }
 
 
@@ -275,6 +290,13 @@ def filters(
     def arrays(ds: list[Descriptors]) -> list[ArrayDescriptor]:
         return [d for d in ds if isinstance(d, ArrayDescriptor)]
 
+    def table_kind(d: Descriptors) -> str | None:
+        if isinstance(d, StructDescriptor):
+            return "JT_STRUCT"
+        if isinstance(d, ArrayDescriptor):
+            return "JT_ARRAY"
+        return None
+
     # ── Document-aware schema filters ────────────────────────────────────
 
     def location(obj: CDecl | Descriptor, *segments: str) -> Any | None:
@@ -309,6 +331,12 @@ def filters(
         pfx = _lookup_prefix(decl) or fallback_prefix
         return f"{pfx}{method}_{nameify(decl)}"
 
+    def shim_mode_or(decl: Any, fallback: ShimMode) -> ShimMode:
+        raw = location(decl, "x-jsmn-shim")
+        if raw is None:
+            return fallback
+        return ShimMode(raw)
+
     _RENAME_FNS: dict[str, Callable[[str], str]] = {
         "snake_case": snake_case,
     }
@@ -336,6 +364,7 @@ def filters(
         "structs": structs,
         "fields": fields,
         "arrays": arrays,
+        "table_kind": table_kind,
         "qualifier": qualifier,
         "snake_case": snake_case,
         "camel_case": camel_case,
@@ -344,6 +373,7 @@ def filters(
         "type_prefix_or": type_prefix_or,
         "nameify": nameify,
         "method_name": method_name,
+        "shim_mode_or": shim_mode_or,
         "location": location,
         "caseify": caseify,
     }

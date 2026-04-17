@@ -13,8 +13,9 @@
 # ---
 # name: test_renderer_jsmn_generated_decl[jsmn-every-type]
   '''
+  #define JSMN_EVERY_TYPE_KEY JT_STRUCT(0)
   #define JSMN_EVERY_TYPE_LEN (247)
-  #define JSMN_EVERY_TYPE_TYPE JT_STRUCT(0)
+  #define JSMN_EVERY_TYPE_NTOKS (25)
   
   struct every_type {
       uint8_t p_u8;
@@ -81,8 +82,9 @@
 # ---
 # name: test_renderer_jsmn_generated_decl[jsmn-vla]
   '''
+  #define JSMN_VLA_COMBOS_KEY JT_STRUCT(0)
   #define JSMN_VLA_COMBOS_LEN (5761)
-  #define JSMN_VLA_COMBOS_TYPE JT_STRUCT(0)
+  #define JSMN_VLA_COMBOS_NTOKS (697)
   
   struct vla__u32__n3 {
       uint32_t len;
@@ -187,12 +189,15 @@
 # ---
 # name: test_renderer_jsmn_generated_decl[jsmn]
   '''
+  #define JSMN_CHILD_KEY JT_STRUCT(0)
   #define JSMN_CHILD_LEN (56)
-  #define JSMN_CHILD_TYPE JT_STRUCT(0)
+  #define JSMN_CHILD_NTOKS (5)
+  #define JSMN_PARENT_KEY JT_STRUCT(1)
   #define JSMN_PARENT_LEN (236)
-  #define JSMN_PARENT_TYPE JT_STRUCT(1)
+  #define JSMN_PARENT_NTOKS (18)
+  #define JSMN_SIBLING_KEY JT_STRUCT(2)
   #define JSMN_SIBLING_LEN (20)
-  #define JSMN_SIBLING_TYPE JT_STRUCT(2)
+  #define JSMN_SIBLING_NTOKS (3)
   
   struct child {
       bool flag;
@@ -367,9 +372,6 @@
       { 12, 0, sizeof(struct every_type), 25, 0 },
   };
   
-  #define JSMN_EVERY_TYPE_KEY 0
-  
-  
   static const struct jt_schemas jsmn_schemas = {
       .names   = jsmn_strings,
       .arrays  = jsmn_arrays,
@@ -429,7 +431,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return jsmn_decode(toks, ntoks, dst, JT_STRUCT(JSMN_EVERY_TYPE_KEY), src, slen);
+      return jsmn_decode(toks, ntoks, dst, JSMN_EVERY_TYPE_KEY, src, slen);
   }
   
   int32_t
@@ -438,8 +440,8 @@
       const char *src,
       uint32_t slen)
   {
-      jsmntok_t toks[25];
-      return jsmn_decode_every_type_tok(dst, src, slen, toks, 25);
+      jsmntok_t toks[JSMN_EVERY_TYPE_NTOKS];
+      return jsmn_decode_every_type_tok(dst, src, slen, toks, JSMN_EVERY_TYPE_NTOKS);
   }
   
   int32_t
@@ -448,7 +450,7 @@
       uint32_t dlen,
       const struct every_type *src)
   {
-  	return jsmn_encode(dst, dlen, src, JT_STRUCT(JSMN_EVERY_TYPE_KEY));
+  	return jsmn_encode(dst, dlen, src, JSMN_EVERY_TYPE_KEY);
   }
   
   
@@ -522,9 +524,6 @@
       { 8, 0, sizeof(struct vla_combos), 697, 0 },
   };
   
-  #define JSMN_VLA_COMBOS_KEY 0
-  
-  
   static const struct jt_schemas jsmn_schemas = {
       .names   = jsmn_strings,
       .arrays  = jsmn_arrays,
@@ -584,7 +583,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return jsmn_decode(toks, ntoks, dst, JT_STRUCT(JSMN_VLA_COMBOS_KEY), src, slen);
+      return jsmn_decode(toks, ntoks, dst, JSMN_VLA_COMBOS_KEY, src, slen);
   }
   
   int32_t
@@ -593,8 +592,8 @@
       const char *src,
       uint32_t slen)
   {
-      jsmntok_t toks[697];
-      return jsmn_decode_vla_combos_tok(dst, src, slen, toks, 697);
+      jsmntok_t toks[JSMN_VLA_COMBOS_NTOKS];
+      return jsmn_decode_vla_combos_tok(dst, src, slen, toks, JSMN_VLA_COMBOS_NTOKS);
   }
   
   int32_t
@@ -603,7 +602,7 @@
       uint32_t dlen,
       const struct vla_combos *src)
   {
-  	return jsmn_encode(dst, dlen, src, JT_STRUCT(JSMN_VLA_COMBOS_KEY));
+  	return jsmn_encode(dst, dlen, src, JSMN_VLA_COMBOS_KEY);
   }
   
   
@@ -656,11 +655,6 @@
       /* [2] sibling @ /forge:~1~1test~1render~1v0/components/schemas/sibling */
       { 1, 0, sizeof(struct sibling), 3, 6 },
   };
-  
-  #define JSMN_CHILD_KEY 0
-  #define JSMN_PARENT_KEY 1
-  #define JSMN_SIBLING_KEY 2
-  
   
   static const struct jt_schemas jsmn_schemas = {
       .names   = jsmn_strings,
@@ -721,7 +715,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return jsmn_decode(toks, ntoks, dst, JT_STRUCT(JSMN_CHILD_KEY), src, slen);
+      return jsmn_decode(toks, ntoks, dst, JSMN_CHILD_KEY, src, slen);
   }
   
   int32_t
@@ -730,8 +724,8 @@
       const char *src,
       uint32_t slen)
   {
-      jsmntok_t toks[5];
-      return jsmn_decode_child_tok(dst, src, slen, toks, 5);
+      jsmntok_t toks[JSMN_CHILD_NTOKS];
+      return jsmn_decode_child_tok(dst, src, slen, toks, JSMN_CHILD_NTOKS);
   }
   
   int32_t
@@ -740,7 +734,7 @@
       uint32_t dlen,
       const struct child *src)
   {
-  	return jsmn_encode(dst, dlen, src, JT_STRUCT(JSMN_CHILD_KEY));
+  	return jsmn_encode(dst, dlen, src, JSMN_CHILD_KEY);
   }
   
   int32_t
@@ -751,7 +745,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return jsmn_decode(toks, ntoks, dst, JT_STRUCT(JSMN_PARENT_KEY), src, slen);
+      return jsmn_decode(toks, ntoks, dst, JSMN_PARENT_KEY, src, slen);
   }
   
   int32_t
@@ -760,8 +754,8 @@
       const char *src,
       uint32_t slen)
   {
-      jsmntok_t toks[18];
-      return jsmn_decode_parent_tok(dst, src, slen, toks, 18);
+      jsmntok_t toks[JSMN_PARENT_NTOKS];
+      return jsmn_decode_parent_tok(dst, src, slen, toks, JSMN_PARENT_NTOKS);
   }
   
   int32_t
@@ -770,7 +764,7 @@
       uint32_t dlen,
       const struct parent *src)
   {
-  	return jsmn_encode(dst, dlen, src, JT_STRUCT(JSMN_PARENT_KEY));
+  	return jsmn_encode(dst, dlen, src, JSMN_PARENT_KEY);
   }
   
   int32_t
@@ -781,7 +775,7 @@
       jsmntok_t *toks,
       uint32_t ntoks)
   {
-      return jsmn_decode(toks, ntoks, dst, JT_STRUCT(JSMN_SIBLING_KEY), src, slen);
+      return jsmn_decode(toks, ntoks, dst, JSMN_SIBLING_KEY, src, slen);
   }
   
   int32_t
@@ -790,8 +784,8 @@
       const char *src,
       uint32_t slen)
   {
-      jsmntok_t toks[3];
-      return jsmn_decode_sibling_tok(dst, src, slen, toks, 3);
+      jsmntok_t toks[JSMN_SIBLING_NTOKS];
+      return jsmn_decode_sibling_tok(dst, src, slen, toks, JSMN_SIBLING_NTOKS);
   }
   
   int32_t
@@ -800,7 +794,7 @@
       uint32_t dlen,
       const struct sibling *src)
   {
-  	return jsmn_encode(dst, dlen, src, JT_STRUCT(JSMN_SIBLING_KEY));
+  	return jsmn_encode(dst, dlen, src, JSMN_SIBLING_KEY);
   }
   
   
@@ -2265,6 +2259,758 @@
       }
       return parser.pos;
   }
+  
+  '''
+# ---
+# name: test_shim_modes_decl[extern]
+  '''
+  #define JSMN_SHIM_DEFAULT_KEY JT_STRUCT(0)
+  #define JSMN_SHIM_DEFAULT_LEN (16)
+  #define JSMN_SHIM_DEFAULT_NTOKS (3)
+  #define JSMN_SHIM_NONE_KEY JT_STRUCT(1)
+  #define JSMN_SHIM_NONE_LEN (16)
+  #define JSMN_SHIM_NONE_NTOKS (3)
+  #define JSMN_SHIM_EXTERN_KEY JT_STRUCT(2)
+  #define JSMN_SHIM_EXTERN_LEN (16)
+  #define JSMN_SHIM_EXTERN_NTOKS (3)
+  #define JSMN_SHIM_INLINE_KEY JT_STRUCT(3)
+  #define JSMN_SHIM_INLINE_LEN (16)
+  #define JSMN_SHIM_INLINE_NTOKS (3)
+  
+  struct shim_default {
+      uint32_t v;
+  };
+  
+  struct shim_none {
+      uint32_t v;
+  };
+  
+  struct shim_extern {
+      uint32_t v;
+  };
+  
+  struct shim_inline {
+      uint32_t v;
+  };
+  
+  int32_t jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type);
+  
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_decode_shim_default_tok(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t jsmn_decode_shim_default(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode_shim_default(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_default *src);
+  
+  int32_t jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src);
+  
+  static inline int32_t
+  jsmn_decode_shim_inline_tok(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_INLINE_KEY, src, slen);
+  }
+  
+  static inline int32_t
+  jsmn_decode_shim_inline(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_INLINE_NTOKS];
+      return jsmn_decode_shim_inline_tok(dst, src, slen, toks, JSMN_SHIM_INLINE_NTOKS);
+  }
+  
+  static inline int32_t
+  jsmn_encode_shim_inline(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_inline *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_INLINE_KEY);
+  }
+  
+  
+  '''
+# ---
+# name: test_shim_modes_decl[inline]
+  '''
+  #define JSMN_SHIM_DEFAULT_KEY JT_STRUCT(0)
+  #define JSMN_SHIM_DEFAULT_LEN (16)
+  #define JSMN_SHIM_DEFAULT_NTOKS (3)
+  #define JSMN_SHIM_NONE_KEY JT_STRUCT(1)
+  #define JSMN_SHIM_NONE_LEN (16)
+  #define JSMN_SHIM_NONE_NTOKS (3)
+  #define JSMN_SHIM_EXTERN_KEY JT_STRUCT(2)
+  #define JSMN_SHIM_EXTERN_LEN (16)
+  #define JSMN_SHIM_EXTERN_NTOKS (3)
+  #define JSMN_SHIM_INLINE_KEY JT_STRUCT(3)
+  #define JSMN_SHIM_INLINE_LEN (16)
+  #define JSMN_SHIM_INLINE_NTOKS (3)
+  
+  struct shim_default {
+      uint32_t v;
+  };
+  
+  struct shim_none {
+      uint32_t v;
+  };
+  
+  struct shim_extern {
+      uint32_t v;
+  };
+  
+  struct shim_inline {
+      uint32_t v;
+  };
+  
+  int32_t jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type);
+  
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
+  
+  static inline int32_t
+  jsmn_decode_shim_default_tok(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_DEFAULT_KEY, src, slen);
+  }
+  
+  static inline int32_t
+  jsmn_decode_shim_default(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_DEFAULT_NTOKS];
+      return jsmn_decode_shim_default_tok(dst, src, slen, toks, JSMN_SHIM_DEFAULT_NTOKS);
+  }
+  
+  static inline int32_t
+  jsmn_encode_shim_default(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_default *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_DEFAULT_KEY);
+  }
+  
+  int32_t jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src);
+  
+  static inline int32_t
+  jsmn_decode_shim_inline_tok(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_INLINE_KEY, src, slen);
+  }
+  
+  static inline int32_t
+  jsmn_decode_shim_inline(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_INLINE_NTOKS];
+      return jsmn_decode_shim_inline_tok(dst, src, slen, toks, JSMN_SHIM_INLINE_NTOKS);
+  }
+  
+  static inline int32_t
+  jsmn_encode_shim_inline(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_inline *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_INLINE_KEY);
+  }
+  
+  
+  '''
+# ---
+# name: test_shim_modes_decl[none]
+  '''
+  #define JSMN_SHIM_DEFAULT_KEY JT_STRUCT(0)
+  #define JSMN_SHIM_DEFAULT_LEN (16)
+  #define JSMN_SHIM_DEFAULT_NTOKS (3)
+  #define JSMN_SHIM_NONE_KEY JT_STRUCT(1)
+  #define JSMN_SHIM_NONE_LEN (16)
+  #define JSMN_SHIM_NONE_NTOKS (3)
+  #define JSMN_SHIM_EXTERN_KEY JT_STRUCT(2)
+  #define JSMN_SHIM_EXTERN_LEN (16)
+  #define JSMN_SHIM_EXTERN_NTOKS (3)
+  #define JSMN_SHIM_INLINE_KEY JT_STRUCT(3)
+  #define JSMN_SHIM_INLINE_LEN (16)
+  #define JSMN_SHIM_INLINE_NTOKS (3)
+  
+  struct shim_default {
+      uint32_t v;
+  };
+  
+  struct shim_none {
+      uint32_t v;
+  };
+  
+  struct shim_extern {
+      uint32_t v;
+  };
+  
+  struct shim_inline {
+      uint32_t v;
+  };
+  
+  int32_t jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type);
+  
+  int32_t jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n);
+  
+  int32_t jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks);
+  
+  int32_t jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen);
+  
+  int32_t jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src);
+  
+  static inline int32_t
+  jsmn_decode_shim_inline_tok(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_INLINE_KEY, src, slen);
+  }
+  
+  static inline int32_t
+  jsmn_decode_shim_inline(
+      struct shim_inline *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_INLINE_NTOKS];
+      return jsmn_decode_shim_inline_tok(dst, src, slen, toks, JSMN_SHIM_INLINE_NTOKS);
+  }
+  
+  static inline int32_t
+  jsmn_encode_shim_inline(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_inline *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_INLINE_KEY);
+  }
+  
+  
+  '''
+# ---
+# name: test_shim_modes_impl[extern]
+  '''
+  static const char jsmn_strings[] =
+      "v\0" /* 0 */
+  ;
+  
+  static const struct jt_array jsmn_arrays[] = {
+      {0}
+  };
+  
+  static const struct jt_field jsmn_fields[] = {
+      /* [0] shim_default.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 0, offsetof(struct shim_default, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [1] shim_none.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 0, offsetof(struct shim_none, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [2] shim_extern.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 0, offsetof(struct shim_extern, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [3] shim_inline.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 0, offsetof(struct shim_inline, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+  };
+  
+  static const struct jt_struct jsmn_structs[] = {
+      /* [0] shim_default @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 1, 0, sizeof(struct shim_default), 3, 0 },
+      /* [1] shim_none @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 1, 0, sizeof(struct shim_none), 3, 1 },
+      /* [2] shim_extern @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 1, 0, sizeof(struct shim_extern), 3, 2 },
+      /* [3] shim_inline @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 1, 0, sizeof(struct shim_inline), 3, 3 },
+  };
+  
+  static const struct jt_schemas jsmn_schemas = {
+      .names   = jsmn_strings,
+      .arrays  = jsmn_arrays,
+      .fields  = jsmn_fields,
+      .structs = jsmn_structs,
+  };
+  
+  int32_t
+  jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen)
+  {
+      return jt_decode(&jsmn_schemas, toks, ntoks, dst, type, src, slen);
+  }
+  
+  int32_t
+  jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type)
+  {
+  	return jt_encode(&jsmn_schemas, dst, dlen, src, type);
+  }
+  
+  int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
+  }
+  
+  int32_t
+  jsmn_decode_shim_default_tok(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_DEFAULT_KEY, src, slen);
+  }
+  
+  int32_t
+  jsmn_decode_shim_default(
+      struct shim_default *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_DEFAULT_NTOKS];
+      return jsmn_decode_shim_default_tok(dst, src, slen, toks, JSMN_SHIM_DEFAULT_NTOKS);
+  }
+  
+  int32_t
+  jsmn_encode_shim_default(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_default *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_DEFAULT_KEY);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_EXTERN_KEY, src, slen);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_EXTERN_NTOKS];
+      return jsmn_decode_shim_extern_tok(dst, src, slen, toks, JSMN_SHIM_EXTERN_NTOKS);
+  }
+  
+  int32_t
+  jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_EXTERN_KEY);
+  }
+  
+  
+  '''
+# ---
+# name: test_shim_modes_impl[inline]
+  '''
+  static const char jsmn_strings[] =
+      "v\0" /* 0 */
+  ;
+  
+  static const struct jt_array jsmn_arrays[] = {
+      {0}
+  };
+  
+  static const struct jt_field jsmn_fields[] = {
+      /* [0] shim_default.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 0, offsetof(struct shim_default, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [1] shim_none.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 0, offsetof(struct shim_none, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [2] shim_extern.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 0, offsetof(struct shim_extern, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [3] shim_inline.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 0, offsetof(struct shim_inline, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+  };
+  
+  static const struct jt_struct jsmn_structs[] = {
+      /* [0] shim_default @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 1, 0, sizeof(struct shim_default), 3, 0 },
+      /* [1] shim_none @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 1, 0, sizeof(struct shim_none), 3, 1 },
+      /* [2] shim_extern @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 1, 0, sizeof(struct shim_extern), 3, 2 },
+      /* [3] shim_inline @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 1, 0, sizeof(struct shim_inline), 3, 3 },
+  };
+  
+  static const struct jt_schemas jsmn_schemas = {
+      .names   = jsmn_strings,
+      .arrays  = jsmn_arrays,
+      .fields  = jsmn_fields,
+      .structs = jsmn_structs,
+  };
+  
+  int32_t
+  jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen)
+  {
+      return jt_decode(&jsmn_schemas, toks, ntoks, dst, type, src, slen);
+  }
+  
+  int32_t
+  jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type)
+  {
+  	return jt_encode(&jsmn_schemas, dst, dlen, src, type);
+  }
+  
+  int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_EXTERN_KEY, src, slen);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_EXTERN_NTOKS];
+      return jsmn_decode_shim_extern_tok(dst, src, slen, toks, JSMN_SHIM_EXTERN_NTOKS);
+  }
+  
+  int32_t
+  jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_EXTERN_KEY);
+  }
+  
+  
+  '''
+# ---
+# name: test_shim_modes_impl[none]
+  '''
+  static const char jsmn_strings[] =
+      "v\0" /* 0 */
+  ;
+  
+  static const struct jt_array jsmn_arrays[] = {
+      {0}
+  };
+  
+  static const struct jt_field jsmn_fields[] = {
+      /* [0] shim_default.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 0, offsetof(struct shim_default, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [1] shim_none.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 0, offsetof(struct shim_none, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [2] shim_extern.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 0, offsetof(struct shim_extern, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+      /* [3] shim_inline.v @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 0, offsetof(struct shim_inline, v), 0xFFFF, JT_PRIM(JT_KIND_U32) },
+  };
+  
+  static const struct jt_struct jsmn_structs[] = {
+      /* [0] shim_default @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_default */
+      { 1, 0, sizeof(struct shim_default), 3, 0 },
+      /* [1] shim_none @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_none */
+      { 1, 0, sizeof(struct shim_none), 3, 1 },
+      /* [2] shim_extern @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_extern */
+      { 1, 0, sizeof(struct shim_extern), 3, 2 },
+      /* [3] shim_inline @ /forge:~1~1test~1shim-modes~1v0/components/schemas/shim_inline */
+      { 1, 0, sizeof(struct shim_inline), 3, 3 },
+  };
+  
+  static const struct jt_schemas jsmn_schemas = {
+      .names   = jsmn_strings,
+      .arrays  = jsmn_arrays,
+      .fields  = jsmn_fields,
+      .structs = jsmn_structs,
+  };
+  
+  int32_t
+  jsmn_decode(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      void *dst,
+      jt_type_t type,
+      const char *src,
+      uint32_t slen)
+  {
+      return jt_decode(&jsmn_schemas, toks, ntoks, dst, type, src, slen);
+  }
+  
+  int32_t
+  jsmn_encode(
+      uint8_t *dst,
+      uint32_t dlen,
+      const void *src,
+      jt_type_t type)
+  {
+  	return jt_encode(&jsmn_schemas, dst, dlen, src, type);
+  }
+  
+  int32_t
+  jsmn_pack(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_pack(&jsmn_schemas, dst, dlen, parts, n);
+  }
+  
+  int32_t
+  jsmn_unpack(
+      jsmntok_t *toks,
+      uint32_t ntoks,
+      const char *src,
+      uint32_t slen,
+      struct jt_part *parts,
+      uint32_t n)
+  {
+  	return jt_unpack(&jsmn_schemas, toks, ntoks, src, slen, parts, n);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern_tok(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen,
+      jsmntok_t *toks,
+      uint32_t ntoks)
+  {
+      return jsmn_decode(toks, ntoks, dst, JSMN_SHIM_EXTERN_KEY, src, slen);
+  }
+  
+  int32_t
+  jsmn_decode_shim_extern(
+      struct shim_extern *dst,
+      const char *src,
+      uint32_t slen)
+  {
+      jsmntok_t toks[JSMN_SHIM_EXTERN_NTOKS];
+      return jsmn_decode_shim_extern_tok(dst, src, slen, toks, JSMN_SHIM_EXTERN_NTOKS);
+  }
+  
+  int32_t
+  jsmn_encode_shim_extern(
+      uint8_t *dst,
+      uint32_t dlen,
+      const struct shim_extern *src)
+  {
+  	return jsmn_encode(dst, dlen, src, JSMN_SHIM_EXTERN_KEY);
+  }
+  
   
   '''
 # ---

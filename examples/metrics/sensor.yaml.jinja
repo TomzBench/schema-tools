@@ -1,0 +1,19 @@
+openapi: "3.1.0"
+$id: "urn:jsmn-tools:examples:metrics"
+info:
+  title: metrics
+  version: "0.0.0"
+components:
+  schemas:
+{% for i in range(n) %}
+{% set s = "" if shared else ("_" ~ "%03d" | format(i)) %}
+    sensor_reading_{{ "%03d" | format(i) }}:
+      type: object
+      x-jsmn-type: sensor_reading_{{ "%03d" | format(i) }}
+      required: [id{{ s }}, celsius{{ s }}, humidity_pct{{ s }}, label{{ s }}]
+      properties:
+        id{{ s }}:           { type: integer, format: uint32 }
+        celsius{{ s }}:      { type: number,  format: float  }
+        humidity_pct{{ s }}: { type: integer, format: uint8  }
+        label{{ s }}:        { type: string,  maxLength: 16  }
+{% endfor %}

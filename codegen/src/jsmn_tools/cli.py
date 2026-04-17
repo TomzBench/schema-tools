@@ -24,7 +24,7 @@ from jinja2 import Environment
 from referencing import Registry, Resource
 from ruamel.yaml import YAML
 
-from jsmn_tools.jsmn.prepare import bundle_codegen, extend_codegen
+from jsmn_tools.jsmn.prepare import ShimMode, bundle_codegen, extend_codegen
 from jsmn_tools.plugin.loader import (
     BundleResult,
     Plugin,
@@ -79,11 +79,53 @@ def _merge_bundles(a: BundleResult, b: BundleResult) -> BundleResult:
     oa = [x for x in [a.openapi, b.openapi] if x]
     aa = [x for x in [a.asyncapi, b.asyncapi] if x]
     return BundleResult(
-        openapi=join(*oa, draft=OPENAPI_3_1).value if len(oa) > 1 else next(iter(oa), None),
-        asyncapi=join(*aa, draft=ASYNCAPI_3_0).value if len(aa) > 1 else next(iter(aa), None),
+        openapi=join(*oa, draft=OPENAPI_3_1).value
+        if len(oa) > 1
+        else next(iter(oa), None),
+        asyncapi=join(*aa, draft=ASYNCAPI_3_0).value
+        if len(aa) > 1
+        else next(iter(aa), None),
         other=[*a.other, *b.other],
         conflicts=[*a.conflicts, *b.conflicts],
     )
+
+
+def _build_jinja_environment(args: argparse.Namespace) -> Environment:
+    env = _parse_kv(args.env)
+    plugin = _resolve_plugin(args.plugin) if args.plugin else None
+
+    resources: list[Resource] = []
+    if args.specs:
+        resources += [
+            load_resource(Path(s), prefix=args.prefix) for s in args.specs
+        ]
+    if plugin:
+        resources += plugin.collect(env)
+    registry = resources @ Registry()
+
+    jinja_hook = getattr(plugin, "jinja", None) if plugin else None
+    jinja_env = jinja_hook(env) if jinja_hook else None
+
+    env_obj = jinja_env or Environment(
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+
+    resolver, bundle = bundle_codegen(registry)
+    shim_mode = ShimMode(args.shim_mode) if args.shim_mode else None
+    extend_codegen(
+        env_obj,
+        bundle,
+        resolver=resolver,
+        prefix=args.prefix,
+        shim_mode=shim_mode,
+    )
+
+    if args.globals:
+        env_obj.globals.update(_parse_kv(args.globals))
+
+    return env_obj
 
 
 # -- commands ----------------------------------------------------------------
@@ -120,6 +162,20 @@ def _cmd_bundle(args: argparse.Namespace) -> None:
     for c in result.conflicts:
         print(f"warning: conflict at {c.location} from {c.id}", file=sys.stderr)
 
+    # TODO: $id leak in bundle output.
+    # join() preserves the first spec's top-level $id in the merged document.
+    # For CLI-loaded specs, that $id is `file:///abs/path/spec_a.yaml` (set by
+    # load_resource via path.resolve().as_uri()). Written verbatim to disk
+    # here, the bundled output carries a machine-specific absolute path —
+    # not portable.
+    #
+    # Fix should happen in the writer, not in load_resource (the file:// base
+    # is load-bearing for relative-ref resolution during render). Options:
+    #   - Strip $id from result.{openapi,asyncapi} before dumping. Simplest,
+    #     if the bundle is a terminal artifact.
+    #   - Accept a CLI flag (e.g. --id) to stamp a synthetic $id on write.
+    #   - Detect file:// $ids (CLI-origin) and rewrite to something stable
+    #     during join.
     writer = YAML()
     if result.openapi:
         writer.dump(result.openapi, out / "openapi.yaml")
@@ -130,41 +186,28 @@ def _cmd_bundle(args: argparse.Namespace) -> None:
 
 
 def _cmd_render(args: argparse.Namespace) -> None:
-    env = _parse_kv(args.env)
-    plugin = _resolve_plugin(args.plugin) if args.plugin else None
-
-    resources: list[Resource] = []
-    if args.specs:
-        resources += [load_resource(Path(s)) for s in args.specs]
-    if plugin:
-        resources += plugin.collect(env)
-    if not resources:
-        _die("no specs provided (pass spec files or --plugin)")
-    registry = resources @ Registry()
-
-    jinja_hook = getattr(plugin, "jinja", None) if plugin else None
-    jinja_env = jinja_hook(env) if jinja_hook else None
-
-    env_obj = jinja_env or Environment(
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-
-    resolver, bundle = bundle_codegen(registry)
-    extend_codegen(env_obj, bundle, resolver=resolver, prefix=args.prefix or "jsmn_")
-
-    if args.globals:
-        env_obj.globals.update(_parse_kv(args.globals))
+    env_obj = _build_jinja_environment(args)
 
     for src, dst in args.templates:
         tpl = Path(src).read_text(encoding="utf-8")
         Path(dst).parent.mkdir(parents=True, exist_ok=True)
-        Path(dst).write_text(env_obj.from_string(tpl).render(), encoding="utf-8")
+        Path(dst).write_text(
+            env_obj.from_string(tpl).render(),
+            encoding="utf-8",
+        )
 
 
-def _cmd_generate(_args: argparse.Namespace) -> None:
-    _die("generate is not yet implemented")
+def _cmd_generate(args: argparse.Namespace) -> None:
+    env_obj = _build_jinja_environment(args)
+    env_obj.globals.update({"preset_header": f"{args.name}.h"})
+    jsmn = env_obj.get_template("jsmn.h")
+    preset_h = env_obj.get_template("preset.h")
+    preset_c = env_obj.get_template("preset.c")
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "jsmn.h").write_text(jsmn.render(), encoding="utf-8")
+    (out / f"{args.name}.h").write_text(preset_h.render(), encoding="utf-8")
+    (out / f"{args.name}.c").write_text(preset_c.render(), encoding="utf-8")
 
 
 # -- argparse ----------------------------------------------------------------
@@ -186,7 +229,10 @@ def main() -> None:
     p.add_argument("specs", nargs="*", help="YAML spec files")
     p.add_argument("--plugin", metavar="PATH", help="plugin file or directory")
     p.add_argument(
-        "--env", action="append", metavar="KEY=VALUE", default=[],
+        "--env",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
         help="config passed to plugin",
     )
     p.add_argument("--out-dir", required=True, help="output directory")
@@ -196,26 +242,66 @@ def main() -> None:
     p = subparsers.add_parser("render", help="render custom templates")
     p.add_argument("specs", nargs="*", help="YAML spec files")
     p.add_argument(
-        "--template", nargs=2, action="append", metavar=("TEMPLATE", "OUTPUT"),
-        dest="templates", default=[], help="template and output pair",
+        "--template",
+        nargs=2,
+        action="append",
+        metavar=("TEMPLATE", "OUTPUT"),
+        dest="templates",
+        default=[],
+        help="template and output pair",
     )
     p.add_argument("--plugin", metavar="PATH", help="plugin file or directory")
     p.add_argument(
-        "--env", action="append", metavar="KEY=VALUE", default=[],
+        "--env",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
         help="config passed to plugin",
     )
     p.add_argument(
-        "--global", action="append", metavar="KEY=VALUE", default=[],
-        dest="globals", help="template variable",
+        "--global",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
+        dest="globals",
+        help="template variable",
     )
     p.add_argument("--prefix", help="function/type prefix (default: jsmn_)")
+    p.add_argument(
+        "--shim-mode",
+        choices=[m.value for m in ShimMode],
+        help="default typed-shim emission mode (default: extern)",
+    )
     p.set_defaults(func=_cmd_render)
 
     # generate (stub)
     p = subparsers.add_parser("generate", help="generate code from specs")
-    p.add_argument("specs", nargs="+", help="YAML spec files")
+    p.add_argument("specs", nargs="*", help="YAML spec files")
+    p.add_argument("--plugin", metavar="PATH", help="plugin file or directory")
+    p.add_argument("--name", required=True, help="name of the generated files")
     p.add_argument("--out-dir", required=True, help="output directory")
     p.add_argument("--prefix", help="function/type prefix (default: jsmn_)")
+    p.add_argument(
+        "--shim-mode",
+        choices=[m.value for m in ShimMode],
+        help="default typed-shim emission mode (default: extern)",
+    )
+    p.add_argument(
+        "--env",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
+        help="config passed to plugin",
+    )
+    p.add_argument(
+        "--global",
+        action="append",
+        metavar="KEY=VALUE",
+        default=[],
+        dest="globals",
+        help="template variable",
+    )
+
     p.set_defaults(func=_cmd_generate)
 
     args = parser.parse_args()

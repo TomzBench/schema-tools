@@ -1,0 +1,14 @@
+{{ project_name | banner }}
+
+# {{ project_name }} — type catalog
+
+{% for decl in declarations if decl is struct_decl and decl is user_decl %}
+## `struct {{ decl.ctype.name }}`
+
+| field | ctype |
+|-------|-------|
+{% for f in decl.fields -%}
+| `{{ f.name }}` | `{{ f.ctype.name }}` |
+{% endfor %}
+
+{% endfor %}

@@ -1,10 +1,8 @@
-{% for d in descriptors | structs %}
+{% for d in descriptors if d is public %}
+{% set table = d | table_kind %}
+#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_KEY {{ table }}({{ d.key.pos }})
 #define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_LEN ({{ d.encode_len }})
-#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_TYPE JT_STRUCT({{ loop.index0 }})
-{% endfor %}
-{% for a in descriptors | arrays if a is array_decl %}
-#define {{ a | type_prefix_or(prefix) | upper }}{{ a | nameify | upper }}_LEN ({{ a.encode_len }})
-#define {{ a | type_prefix_or(prefix) | upper }}{{ a | nameify | upper }}_TYPE JT_ARRAY({{ a.key.pos }})
+#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_NTOKS ({{ d.ntoks }})
 {% endfor %}
 
 {# --- The C struct/union/enum/typedef declarations --- #}
@@ -57,45 +55,61 @@ int32_t {{ prefix }}unpack(
     struct jt_part *parts,
     uint32_t n);
 
-{# --- Prototype declarations --- #}
-{% for decl in declarations %}
-{% if decl is struct_decl and decl is user_decl and not decl is array_decl %}
-int32_t {{ decl | method_name("decode", fallback_prefix=prefix) }}_tok(
-    {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *dst,
+{# --- Prototypes (extern) or inline bodies --- #}
+{% for d in descriptors if d is public %}
+{% set mode = d | shim_mode_or(default_shim_mode) %}
+{% set name = (d | type_prefix_or(prefix)) | upper ~ (d | nameify) | upper -%}
+{% set ctype_decl = (d.ctype | qualifier ~ ' ' ~ d.ctype.name) | trim -%}
+{% set decode = (d | method_name("decode", fallback_prefix=prefix)) -%}
+{% set encode = (d | method_name("encode", fallback_prefix=prefix)) -%}
+{% if mode == "extern" %}
+int32_t {{ decode }}_tok(
+    {{ ctype_decl }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks);
 
-int32_t {{ decl | method_name("decode", fallback_prefix=prefix) }}(
-    {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *dst,
+int32_t {{ decode }}(
+    {{ ctype_decl }} *dst,
     const char *src,
     uint32_t slen);
 
-int32_t {{ decl | method_name("encode", fallback_prefix=prefix) }}(
+int32_t {{ encode }}(
     uint8_t *dst,
     uint32_t dlen,
-    const {{ ("struct" ~ ' ' ~ decl.ctype.name) | trim }} *src);
+    const {{ ctype_decl }} *src);
+
+{% elif mode == "inline" %}
+static inline int32_t
+{{ decode }}_tok(
+    {{ ctype_decl }} *dst,
+    const char *src,
+    uint32_t slen,
+    jsmntok_t *toks,
+    uint32_t ntoks)
+{
+    return {{ prefix }}decode(toks, ntoks, dst, {{ name }}_KEY, src, slen);
+}
+
+static inline int32_t
+{{ decode }}(
+    {{ ctype_decl }} *dst,
+    const char *src,
+    uint32_t slen)
+{
+    jsmntok_t toks[{{ name }}_NTOKS];
+    return {{ decode }}_tok(dst, src, slen, toks, {{ name }}_NTOKS);
+}
+
+static inline int32_t
+{{ encode }}(
+    uint8_t *dst,
+    uint32_t dlen,
+    const {{ ctype_decl }} *src)
+{
+	return {{ prefix }}encode(dst, dlen, src, {{ name }}_KEY);
+}
 
 {% endif %}
-{% endfor %}
-{# --- Array prototype declarations --- #}
-{% for a in descriptors | arrays if a is array_decl %}
-int32_t {{ a | method_name("decode", fallback_prefix=prefix) }}_tok(
-    {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
-    const char *src,
-    uint32_t slen,
-    jsmntok_t *toks,
-    uint32_t ntoks);
-
-int32_t {{ a | method_name("decode", fallback_prefix=prefix) }}(
-    {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
-    const char *src,
-    uint32_t slen);
-
-int32_t {{ a | method_name("encode", fallback_prefix=prefix) }}(
-    uint8_t *dst,
-    uint32_t dlen,
-    const {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *src);
-
 {% endfor %}

@@ -14,8 +14,8 @@ from referencing.jsonschema import DRAFT202012
 from ruamel.yaml import YAML
 
 from jsmn_tools.jsmn import bundle_codegen, extend_codegen
-from jsmn_tools.spec import ASYNCAPI_3_0, OPENAPI_3_1, split_draft
-from jsmn_tools.walk import JoinConflict, join
+from jsmn_tools.spec import ASYNCAPI_3_0, OPENAPI_3_1, parse_draft, split_draft
+from jsmn_tools.walk import JoinConflict, join, prefixer
 
 RE_CONFIG = re.compile(r"^\.?(jsmnTools|JsmnTools|jsmn-tools).py$")
 
@@ -70,10 +70,12 @@ def load_bundle(*specs: Any) -> BundleResult:
     )
 
 
-def load_resource(path: Path) -> Resource:
+def load_resource(path: Path, *, prefix: str | None = None) -> Resource:
     spec = yaml.load(path)
     if "$id" not in spec:
         spec["$id"] = path.resolve().as_uri()
+    if prefix and (draft := parse_draft(spec)):
+        spec = prefixer(spec, draft=draft, prefix=prefix)
     return Resource.from_contents(spec, default_specification=DRAFT202012)
 
 
@@ -99,7 +101,7 @@ def load_plugins(workspace: list[Path]) -> dict[Path, Plugin]:
 def render(
     *templates: tuple[Path, Path],
     registry: Registry,
-    prefix: str = "jsmn_",
+    prefix: str | None = None,
     jinja_env: Environment | None = None,
     autoconf: dict[str, str] | None = None,
 ) -> list[RenderError]:

@@ -20,6 +20,20 @@
 #       ENV         build_dir=${CMAKE_CURRENT_BINARY_DIR}
 #       GLOBAL      version=1.0
 #   )
+#
+#   jsmn_generate(my_codegen_target
+#       SPECS       ${CMAKE_CURRENT_BINARY_DIR}/cache/openapi.yaml
+#       PLUGIN      ${CMAKE_CURRENT_SOURCE_DIR}
+#       PREFIX      app_
+#       ENV         build_dir=${CMAKE_CURRENT_BINARY_DIR}
+#       GLOBAL      version=1.0
+#       NAME        app
+#       OUTDIR      ${CMAKE_CURRENT_BINARY_DIR}/generated
+#   )
+#
+# Produces three files in OUTDIR: jsmn.h, <NAME>.h, <NAME>.c. Consumers add
+# the generated .c to their own target and declare a dependency on the
+# codegen target — jsmn_generate does not wrap the output in a library.
 
 set(JsmnTools_FOUND TRUE)
 set(JsmnTools_VERSION "0.1.0")
@@ -81,6 +95,53 @@ function(jsmn_render target)
         DEPENDS ${ARG_SPECS} ${_depends}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "jsmn-tools: generating outputs"
+    )
+
+    add_custom_target(${target} DEPENDS ${_outputs})
+endfunction()
+
+function(jsmn_generate target)
+    cmake_parse_arguments(ARG "" "PREFIX;PLUGIN;NAME;OUTDIR" "SPECS;ENV;GLOBAL" ${ARGN})
+
+    # Validate required arguments
+    if(NOT ARG_NAME)
+        message(FATAL_ERROR "jsmn_generate: NAME is required")
+    endif()
+    if(NOT ARG_OUTDIR)
+        message(FATAL_ERROR "jsmn_generate: OUTDIR is required")
+    endif()
+
+    # Build command args
+    set(_args ${ARG_SPECS})
+
+    # Build --env args (user-defined environment variables)
+    foreach(e IN LISTS ARG_ENV)
+        list(APPEND _args --env "${e}")
+    endforeach()
+
+    # Build --global args (user defined template variables)
+    foreach(g IN LISTS ARG_GLOBAL)
+        list(APPEND _args --global "${g}")
+    endforeach()
+
+    # Build optional arguments
+    _append_if(ARG_PREFIX _args --prefix "${ARG_PREFIX}")
+    _append_if(ARG_PLUGIN _args --plugin "${ARG_PLUGIN}")
+
+    list(APPEND _args --name "${ARG_NAME}" --out-dir "${ARG_OUTDIR}")
+
+    set(_outputs
+        "${ARG_OUTDIR}/jsmn.h"
+        "${ARG_OUTDIR}/${ARG_NAME}.h"
+        "${ARG_OUTDIR}/${ARG_NAME}.c"
+    )
+
+    add_custom_command(
+        OUTPUT ${_outputs}
+        COMMAND ${JsmnTools_EXECUTABLE} generate ${_args}
+        DEPENDS ${ARG_SPECS}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "jsmn-tools: generating ${ARG_NAME}"
     )
 
     add_custom_target(${target} DEPENDS ${_outputs})
