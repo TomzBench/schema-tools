@@ -1,0 +1,50 @@
+/* Metrics harness — N sensor_reading schemas and optional call sites in main().
+ *
+ * Rendered by `jsmn render`; compiled to an object file so `size build/main.o`
+ * reports the generated codec's contribution directly, without link-time noise.
+ *
+ * `n`     — number of schemas emitted (supplied by measure.py).
+ * `calls` — synthetic decode+encode call-site pairs per type in main().
+ *           0 keeps main trivial; >0 forces call-site code into the object
+ *           so per-C cost is measurable alongside per-N cost.
+ */
+
+#include <stdio.h>
+#include <string.h>
+
+{% include "jsmn.h" %}
+
+{% include "runtime.h" %}
+
+{% include "jsmn_generated.h" %}
+
+{% include "runtime.c" %}
+
+{% include "jsmn_generated.c" %}
+
+int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    int32_t r = 0;
+{% for decl in declarations if decl is struct_decl and decl is user_decl %}
+{%   set name = (decl | type_prefix_or(prefix)) | upper ~ (decl | nameify) | upper %}
+{%   set decode = decl | method_name("decode", fallback_prefix=prefix) %}
+{%   set encode = decl | method_name("encode", fallback_prefix=prefix) %}
+{%   for _ in range(calls | int) %}
+{%     if default_shim_mode == "none" %}
+    { struct {{ decl.ctype.name }} d;
+      jsmntok_t toks[{{ name }}_NTOKS];
+      uint8_t buf[{{ name }}_LEN];
+      r ^= {{ prefix }}decode(toks, {{ name }}_NTOKS, &d,
+                              {{ name }}_KEY, argv[0], (uint32_t)argc);
+      r ^= {{ prefix }}encode(buf, sizeof(buf), &d, {{ name }}_KEY); }
+{%     else %}
+    { struct {{ decl.ctype.name }} d;
+      uint8_t buf[{{ name }}_LEN];
+      r ^= {{ decode }}(&d, argv[0], (uint32_t)argc);
+      r ^= {{ encode }}(buf, sizeof(buf), &d); }
+{%     endif %}
+{%   endfor %}
+{% endfor %}
+    return r;
+}

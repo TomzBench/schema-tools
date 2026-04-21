@@ -25,7 +25,9 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 compile_commands.json
-Makefile
+# Only ignore a Makefile at the repo root (in-source CMake build); leave
+# authored Makefiles in subdirs (examples/, etc.) tracked.
+/Makefile
 !**/CMakeLists.txt
 .cache
 

@@ -1,0 +1,347 @@
+{
+  "by_n": [
+    {
+      "n": 1,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 7652,
+      "data": 0,
+      "bss": 0,
+      "dec": 7652
+    },
+    {
+      "n": 10,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 10064,
+      "data": 0,
+      "bss": 0,
+      "dec": 10064,
+      "hex": 2750
+    },
+    {
+      "n": 50,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 20768,
+      "data": 0,
+      "bss": 0,
+      "dec": 20768,
+      "hex": 5120
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 34112,
+      "data": 0,
+      "bss": 0,
+      "dec": 34112,
+      "hex": 8540
+    },
+    {
+      "n": 200,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 60800,
+      "data": 0,
+      "bss": 0,
+      "dec": 60800
+    },
+    {
+      "n": 500,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 140912,
+      "data": 0,
+      "bss": 0,
+      "dec": 140912,
+      "hex": 22670
+    },
+    {
+      "n": 1,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 7532,
+      "data": 0,
+      "bss": 0,
+      "dec": 7532
+    },
+    {
+      "n": 10,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 8944,
+      "data": 0,
+      "bss": 0,
+      "dec": 8944
+    },
+    {
+      "n": 50,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 15168,
+      "data": 0,
+      "bss": 0,
+      "dec": 15168
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 22896,
+      "data": 0,
+      "bss": 0,
+      "dec": 22896,
+      "hex": 5970
+    },
+    {
+      "n": 200,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 38400,
+      "data": 0,
+      "bss": 0,
+      "dec": 38400,
+      "hex": 9600
+    },
+    {
+      "n": 500,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 84896,
+      "data": 0,
+      "bss": 0,
+      "dec": 84896
+    },
+    {
+      "n": 1,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 7532,
+      "data": 0,
+      "bss": 0,
+      "dec": 7532
+    },
+    {
+      "n": 10,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 8960,
+      "data": 0,
+      "bss": 0,
+      "dec": 8960,
+      "hex": 2300
+    },
+    {
+      "n": 50,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 15216,
+      "data": 0,
+      "bss": 0,
+      "dec": 15216
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 22720,
+      "data": 0,
+      "bss": 0,
+      "dec": 22720
+    },
+    {
+      "n": 200,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 38320,
+      "data": 0,
+      "bss": 0,
+      "dec": 38320
+    },
+    {
+      "n": 500,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 84704,
+      "data": 0,
+      "bss": 0,
+      "dec": 84704
+    }
+  ],
+  "by_c": [
+    {
+      "n": 100,
+      "calls": 0,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 30260,
+      "data": 0,
+      "bss": 0,
+      "dec": 30260,
+      "hex": 7634
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 34112,
+      "data": 0,
+      "bss": 0,
+      "dec": 34112,
+      "hex": 8540
+    },
+    {
+      "n": 100,
+      "calls": 3,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 41712,
+      "data": 0,
+      "bss": 0,
+      "dec": 41712
+    },
+    {
+      "n": 100,
+      "calls": 5,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 49312,
+      "data": 0,
+      "bss": 0,
+      "dec": 49312
+    },
+    {
+      "n": 100,
+      "calls": 10,
+      "shared": false,
+      "shim_mode": "extern",
+      "text": 68304,
+      "data": 0,
+      "bss": 0,
+      "dec": 68304
+    },
+    {
+      "n": 100,
+      "calls": 0,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 15956,
+      "data": 0,
+      "bss": 0,
+      "dec": 15956
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 22896,
+      "data": 0,
+      "bss": 0,
+      "dec": 22896,
+      "hex": 5970
+    },
+    {
+      "n": 100,
+      "calls": 3,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 36512,
+      "data": 0,
+      "bss": 0,
+      "dec": 36512
+    },
+    {
+      "n": 100,
+      "calls": 5,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 43184,
+      "data": 0,
+      "bss": 0,
+      "dec": 43184
+    },
+    {
+      "n": 100,
+      "calls": 10,
+      "shared": false,
+      "shim_mode": "inline",
+      "text": 59696,
+      "data": 0,
+      "bss": 0,
+      "dec": 59696
+    },
+    {
+      "n": 100,
+      "calls": 0,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 15956,
+      "data": 0,
+      "bss": 0,
+      "dec": 15956
+    },
+    {
+      "n": 100,
+      "calls": 1,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 22720,
+      "data": 0,
+      "bss": 0,
+      "dec": 22720
+    },
+    {
+      "n": 100,
+      "calls": 3,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 36576,
+      "data": 0,
+      "bss": 0,
+      "dec": 36576
+    },
+    {
+      "n": 100,
+      "calls": 5,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 50288,
+      "data": 0,
+      "bss": 0,
+      "dec": 50288
+    },
+    {
+      "n": 100,
+      "calls": 10,
+      "shared": false,
+      "shim_mode": "none",
+      "text": 84272,
+      "data": 0,
+      "bss": 0,
+      "dec": 84272,
+      "hex": 14930
+    }
+  ]
+}

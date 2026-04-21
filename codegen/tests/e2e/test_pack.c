@@ -51,8 +51,8 @@ test_pack_two_structs(void)
     struct item it = {.id = 42, .value = -7, .scores = {10, 20, 30, 40}};
 
     struct jt_part parts[] = {
-        {.key = "tag", .data = &t, .type = JSMN_TAG_TYPE},
-        {.key = "item", .data = &it, .type = JSMN_ITEM_TYPE},
+        {.key = "tag", .data = &t, .type = JSMN_TAG_KEY},
+        {.key = "item", .data = &it, .type = JSMN_ITEM_KEY},
     };
 
     // clang-format off
@@ -87,8 +87,8 @@ test_unpack_two_structs(void)
     struct item it = {0};
 
     struct jt_part parts[] = {
-        {.key = "tag", .data = &t, .type = JSMN_TAG_TYPE},
-        {.key = "item", .data = &it, .type = JSMN_ITEM_TYPE},
+        {.key = "tag", .data = &t, .type = JSMN_TAG_KEY},
+        {.key = "item", .data = &it, .type = JSMN_ITEM_KEY},
     };
 
     jsmntok_t toks[32];
@@ -111,8 +111,8 @@ test_pack_unpack_roundtrip(void)
     struct item it = {.id = 7, .value = -1, .scores = {5, 6, 7, 8}};
 
     struct jt_part enc_parts[] = {
-        {.key = "t", .data = &t, .type = JSMN_TAG_TYPE},
-        {.key = "i", .data = &it, .type = JSMN_ITEM_TYPE},
+        {.key = "t", .data = &t, .type = JSMN_TAG_KEY},
+        {.key = "i", .data = &it, .type = JSMN_ITEM_KEY},
     };
 
     uint8_t j1[256], j2[256];
@@ -123,8 +123,8 @@ test_pack_unpack_roundtrip(void)
     struct item it2 = {0};
 
     struct jt_part dec_parts[] = {
-        {.key = "t", .data = &t2, .type = JSMN_TAG_TYPE},
-        {.key = "i", .data = &it2, .type = JSMN_ITEM_TYPE},
+        {.key = "t", .data = &t2, .type = JSMN_TAG_KEY},
+        {.key = "i", .data = &it2, .type = JSMN_ITEM_KEY},
     };
 
     jsmntok_t toks[32];
@@ -132,8 +132,8 @@ test_pack_unpack_roundtrip(void)
     TEST_ASSERT_EQUAL_INT(n1, nd);
 
     struct jt_part enc2_parts[] = {
-        {.key = "t", .data = &t2, .type = JSMN_TAG_TYPE},
-        {.key = "i", .data = &it2, .type = JSMN_ITEM_TYPE},
+        {.key = "t", .data = &t2, .type = JSMN_TAG_KEY},
+        {.key = "i", .data = &it2, .type = JSMN_ITEM_KEY},
     };
 
     int n2 = jsmn_pack(j2, sizeof(j2), enc2_parts, 2);
@@ -159,7 +159,7 @@ test_pack_nested(void)
     // clang-format on
 
     struct jt_part parts[] = {
-        {.key = "c", .data = &c, .type = JSMN_CONTAINER_TYPE},
+        {.key = "c", .data = &c, .type = JSMN_CONTAINER_KEY},
     };
 
     uint8_t   j1[512];
@@ -168,7 +168,7 @@ test_pack_nested(void)
 
     struct container c2 = {0};
     struct jt_part   dec_parts[] = {
-        {.key = "c", .data = &c2, .type = JSMN_CONTAINER_TYPE},
+        {.key = "c", .data = &c2, .type = JSMN_CONTAINER_KEY},
     };
 
     jsmntok_t toks[64];
@@ -184,7 +184,7 @@ test_pack_buffer_too_small(void)
 {
     struct tag     t = {.label = "hello"};
     struct jt_part parts[] = {
-        {.key = "tag", .data = &t, .type = JSMN_TAG_TYPE},
+        {.key = "tag", .data = &t, .type = JSMN_TAG_KEY},
     };
 
     uint8_t buf[4]; // way too small
@@ -202,8 +202,8 @@ test_unpack_missing_key(void)
     it.id = 999; // sentinel — should not be touched
 
     struct jt_part parts[] = {
-        {.key = "tag", .data = &t, .type = JSMN_TAG_TYPE},
-        {.key = "item", .data = &it, .type = JSMN_ITEM_TYPE},
+        {.key = "tag", .data = &t, .type = JSMN_TAG_KEY},
+        {.key = "item", .data = &it, .type = JSMN_ITEM_KEY},
     };
 
     jsmntok_t toks[16];
@@ -220,7 +220,7 @@ test_unpack_bad_json(void)
 
     struct tag     t = {0};
     struct jt_part parts[] = {
-        {.key = "tag", .data = &t, .type = JSMN_TAG_TYPE},
+        {.key = "tag", .data = &t, .type = JSMN_TAG_KEY},
     };
 
     jsmntok_t toks[8];

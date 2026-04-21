@@ -28,7 +28,7 @@ from .descriptor import (
     sum_encode_len_with_cache,
     sum_ntoks_with_cache,
 )
-from .filters import filters, tests
+from .filters import ShimMode, filters, tests
 from .flatten import flatten_with_resolver
 from .ir import CArray, CDecl, CStruct, CType, CUnion, Dim, Field, FixedDims
 from .mangle import dim_walk, make_maybe, make_optional, make_vla, mangle
@@ -361,14 +361,15 @@ def extend_codegen(
     *,
     resolver: Resolver,
     prefix: str | None = None,
+    shim_mode: ShimMode | None = ShimMode.EXTERN,
 ) -> None:
     runtime_loader, package_loader = codegen_loaders()
     dst.loader = join_loaders(dst.loader, runtime_loader, package_loader)
     dst.tests.update(tests(src["original"], resolver))
     dst.filters.update(filters(src["table"], src["declarations"], resolver))
     dst.globals.update(src)
-    if prefix:
-        dst.globals |= {"prefix": prefix}
+    dst.globals.setdefault("prefix", prefix or "jsmn_")
+    dst.globals.setdefault("default_shim_mode", shim_mode or ShimMode.EXTERN)
 
 
 # NOTE currently the bundle pipeline for doc tooling is join(). However, should

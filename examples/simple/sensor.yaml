@@ -1,0 +1,23 @@
+openapi: "3.1.0"
+info:
+  title: Sensor API
+  version: "0.1.0"
+components:
+  schemas:
+    sensor_reading:
+      type: object
+      x-jsmn-type: sensor_reading
+      required: [id, celsius, humidity_pct, label]
+      properties:
+        id:
+          type: integer
+          format: uint32
+        celsius:
+          type: number
+          format: float
+        humidity_pct:
+          type: integer
+          format: uint8
+        label:
+          type: string
+          maxLength: 16

@@ -41,12 +41,6 @@ static const struct jt_struct {{ prefix ~ "structs" }}[] = {
 {% endfor -%}
 };
 
-{# --- Struct Keys --- #}
-{% for d in struct_descriptors %}
-#define {{ d | type_prefix_or(prefix) | upper }}{{ d | nameify | upper }}_KEY {{ loop.index0 }}
-{% endfor %}
-
-
 {# --- Schemas Context --- #}
 static const struct jt_schemas {{ prefix }}schemas = {
     .names   = {{ prefix }}strings,
@@ -100,80 +94,44 @@ int32_t
 	return jt_unpack(&{{ prefix ~ "schemas" }}, toks, ntoks, src, slen, parts, n);
 }
 
-{# --- Struct Loop --- #}
-{% for s in struct_descriptors if s is user_decl %}
-{% set idx = (s | type_prefix_or(prefix)) | upper ~ (s | nameify) | upper ~ "_KEY" -%}
-{% set type_expr = "JT_STRUCT(" ~ idx ~ ")" -%}
+{# --- Shim Loop --- #}
+{% for d in descriptors if d is public %}
+{% set mode = d | shim_mode_or(default_shim_mode) %}
+{% if mode == "extern" %}
+{% set name = (d | type_prefix_or(prefix)) | upper ~ (d | nameify) | upper -%}
+{% set ctype_decl = (d.ctype | qualifier ~ ' ' ~ d.ctype.name) | trim -%}
+{% set decode = (d | method_name("decode", fallback_prefix=prefix)) -%}
+{% set encode = (d | method_name("encode", fallback_prefix=prefix)) -%}
 
-{# --- Struct Decode Function implementations --- #}
 int32_t
-{{ s | method_name("decode", fallback_prefix=prefix) }}_tok(
-    {{ ("struct" ~ ' ' ~ s.ctype.name) | trim }} *dst,
+{{ decode }}_tok(
+    {{ ctype_decl }} *dst,
     const char *src,
     uint32_t slen,
     jsmntok_t *toks,
     uint32_t ntoks)
 {
-    return {{ prefix }}decode(toks, ntoks, dst, {{ type_expr }}, src, slen);
+    return {{ prefix }}decode(toks, ntoks, dst, {{ name }}_KEY, src, slen);
 }
 
 int32_t
-{{ s | method_name("decode", fallback_prefix=prefix) }}(
-    {{ ("struct" ~ ' ' ~ s.ctype.name) | trim }} *dst,
+{{ decode }}(
+    {{ ctype_decl }} *dst,
     const char *src,
     uint32_t slen)
 {
-    jsmntok_t toks[{{ s.ntoks }}];
-    return {{ s | method_name("decode", fallback_prefix=prefix) }}_tok(dst, src, slen, toks, {{ s.ntoks }});
+    jsmntok_t toks[{{ name }}_NTOKS];
+    return {{ decode }}_tok(dst, src, slen, toks, {{ name }}_NTOKS);
 }
 
-{# --- Struct Encode Function implementations --- #}
 int32_t
-{{ s | method_name("encode", fallback_prefix=prefix) }}(
+{{ encode }}(
     uint8_t *dst,
     uint32_t dlen,
-    const {{ ("struct" ~ ' ' ~ s.ctype.name) | trim }} *src)
+    const {{ ctype_decl }} *src)
 {
-	return {{ prefix }}encode(dst, dlen, src, {{ type_expr }});
+	return {{ prefix }}encode(dst, dlen, src, {{ name }}_KEY);
 }
 
-{% endfor -%}
-
-{# --- Array Loop --- #}
-{% for a in descriptors | arrays if a is array_decl %}
-{% set type_expr = "JT_ARRAY(" ~ a.key.pos ~ ")" -%}
-
-{# --- Array Decode Tok Implementation --- #}
-int32_t
-{{ a | method_name("decode", fallback_prefix=prefix) }}_tok(
-    {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
-    const char *src,
-    uint32_t slen,
-    jsmntok_t *toks,
-    uint32_t ntoks)
-{
-    return {{ prefix }}decode(toks, ntoks, dst, {{ type_expr }}, src, slen);
-}
-
-{# --- Array Decode Implementation --- #}
-int32_t
-{{ a | method_name("decode", fallback_prefix=prefix) }}(
-    {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *dst,
-    const char *src,
-    uint32_t slen)
-{
-    jsmntok_t toks[{{ a.ntoks }}];
-    return {{ a | method_name("decode", fallback_prefix=prefix) }}_tok(dst, src, slen, toks, {{ a.ntoks }});
-}
-
-{# --- Array Encode Implementation --- #}
-int32_t
-{{ a | method_name("encode", fallback_prefix=prefix) }}(
-    uint8_t *dst,
-    uint32_t dlen,
-    const {{ (a.ctype | qualifier ~ ' ' ~ a.ctype.name) | trim }} *src)
-{
-	return {{ prefix }}encode(dst, dlen, src, {{ type_expr }});
-}
-
+{% endif %}
 {% endfor %}

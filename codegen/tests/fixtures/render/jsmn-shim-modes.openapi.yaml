@@ -1,0 +1,41 @@
+openapi: "3.1.0"
+$id: "forge://test/shim-modes/v0"
+info:
+  title: Shim mode override test
+  version: "0.1.0"
+# Four types covering the per-type override axis. Parametrizing the test
+# over default_shim_mode ∈ {none, extern, inline} against this fixture
+# exercises every (default, override) pair in just 3 snapshots per target.
+components:
+  schemas:
+    # No x-jsmn-shim — inherits default_shim_mode
+    shim_default:
+      type: object
+      x-jsmn-type: shim_default
+      required: [v]
+      properties:
+        v: { type: integer, format: uint32 }
+
+    shim_none:
+      type: object
+      x-jsmn-type: shim_none
+      x-jsmn-shim: none
+      required: [v]
+      properties:
+        v: { type: integer, format: uint32 }
+
+    shim_extern:
+      type: object
+      x-jsmn-type: shim_extern
+      x-jsmn-shim: extern
+      required: [v]
+      properties:
+        v: { type: integer, format: uint32 }
+
+    shim_inline:
+      type: object
+      x-jsmn-type: shim_inline
+      x-jsmn-shim: inline
+      required: [v]
+      properties:
+        v: { type: integer, format: uint32 }

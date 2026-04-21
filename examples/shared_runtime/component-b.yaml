@@ -1,0 +1,19 @@
+openapi: "3.1.0"
+info:
+  title: Component B
+  version: "0.1.0"
+components:
+  schemas:
+    device_heartbeat:
+      type: object
+      x-jsmn-type: device_heartbeat
+      required: [device_id, uptime_s, online]
+      properties:
+        device_id:
+          type: integer
+          format: uint32
+        uptime_s:
+          type: integer
+          format: uint32
+        online:
+          type: boolean

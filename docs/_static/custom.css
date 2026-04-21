@@ -70,6 +70,130 @@ body:not([data-theme="dark"]) table thead th {
 }
 
 /* ==========================================================================
+   Landing page step cards — Altronix-branded sphinx-design overrides
+   ========================================================================== */
+
+/* Step number badge */
+.sd-card .sd-card-header .sd-card-text .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8em;
+    height: 1.8em;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9em;
+    margin-right: 0.5em;
+    flex-shrink: 0;
+}
+
+/* Light mode cards */
+body:not([data-theme="dark"]) .sd-card {
+    border: 1px solid #D0D9E4;
+    border-radius: 8px;
+}
+
+body:not([data-theme="dark"]) .sd-card-header {
+    background: linear-gradient(135deg, #EDF1F7 0%, #F7F9FC 100%);
+    border-bottom: 2px solid #0072CE;
+    padding: 0.8rem 1.2rem;
+}
+
+body:not([data-theme="dark"]) .sd-card-header .sd-card-text {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #003A6B;
+}
+
+body:not([data-theme="dark"]) .step-number {
+    background: #0072CE;
+    color: #FFFFFF;
+}
+
+body:not([data-theme="dark"]) .sd-card-body {
+    padding: 1.2rem;
+}
+
+/* Dark mode cards */
+body[data-theme="dark"] .sd-card {
+    border: 1px solid #1E2A42;
+    border-radius: 8px;
+    background: #131C2E;
+}
+
+body[data-theme="dark"] .sd-card-header {
+    background: linear-gradient(135deg, #131C2E 0%, #1A2540 100%);
+    border-bottom: 2px solid #1A3050;
+    padding: 0.8rem 1.2rem;
+}
+
+body[data-theme="dark"] .sd-card-header .sd-card-text {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #5BB0EC;
+}
+
+body[data-theme="dark"] .step-number {
+    background: #1A3050;
+    color: #5BB0EC;
+}
+
+body[data-theme="dark"] .sd-card-body {
+    padding: 1.2rem;
+}
+
+/* Prefers dark — auto mode cards */
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .sd-card {
+        border: 1px solid #1E2A42;
+        border-radius: 8px;
+        background: #131C2E;
+    }
+
+    body:not([data-theme="light"]) .sd-card-header {
+        background: linear-gradient(135deg, #131C2E 0%, #1A2540 100%);
+        border-bottom: 2px solid #1A3050;
+        padding: 0.8rem 1.2rem;
+    }
+
+    body:not([data-theme="light"]) .sd-card-header .sd-card-text {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #5BB0EC;
+    }
+
+    body:not([data-theme="light"]) .step-number {
+        background: #1A3050;
+        color: #5BB0EC;
+    }
+
+    body:not([data-theme="light"]) .sd-card-body {
+        padding: 1.2rem;
+    }
+}
+
+/* Hero tagline styling */
+.landing-tagline {
+    font-size: 1.15em;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+body:not([data-theme="dark"]) .landing-tagline {
+    color: #3A4A5A;
+}
+
+body[data-theme="dark"] .landing-tagline {
+    color: #8899B0;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .landing-tagline {
+        color: #8899B0;
+    }
+}
+
+/* ==========================================================================
    Headings — subtle Altronix blue distinction from body text
    ========================================================================== */
 
@@ -263,5 +387,50 @@ body[data-theme="dark"] table thead th {
 
     body:not([data-theme="light"]) table thead th {
         color: #C0D0E0;
+    }
+}
+
+/* ==========================================================================
+   Mermaid — override extension's default 500px SVG height
+   ========================================================================== */
+
+pre.mermaid {
+    margin-top: 1.5rem;
+}
+
+pre.mermaid > svg {
+    height: auto !important;
+    max-height: 180px;
+}
+
+/* ==========================================================================
+   Single-page layout — hide empty nav tree, keep brand + search visible
+   ========================================================================== */
+
+.sidebar-tree {
+    display: none;
+}
+
+/* ==========================================================================
+   Redundant-token highlight — used in the prefixing comparison grid
+   ========================================================================== */
+
+.jt-bad {
+    color: #c5383a;
+    font-weight: 600;
+    background: rgba(197, 56, 58, 0.10);
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+body[data-theme="dark"] .jt-bad {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .jt-bad {
+        color: #f87171;
+        background: rgba(248, 113, 113, 0.14);
     }
 }
